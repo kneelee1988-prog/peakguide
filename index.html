@@ -1091,7 +1091,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 .sri-tags{display:flex;gap:4px;margin-top:4px;}
 .sri-tag{font-size:11px;padding:3px 8px;border-radius:8px;background:var(--g100);color:var(--text2);border:1px solid var(--borderr);}
 .sri-match{font-size:11px;font-weight:800;color:var(--g600);}
-.search-filter-row{display:flex;gap:6px;padding:0 0 4px;overflow-x:auto;scrollbar-width:none;flex-wrap:wrap;}
+.rsel-chip{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:all .18s;white-space:nowrap;}
+.rsel-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(67,196,122,.4);}
+.rsel-chip:active{transform:scale(.95);}
+#region-select-bar::-webkit-scrollbar{display:none;}
 .search-filter-row::-webkit-scrollbar{display:none;}
 .sf-chip{flex-shrink:0;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid var(--borderr);color:var(--text2);cursor:pointer;white-space:nowrap;background:#fff;transition:all .18s;}
 .sf-chip.active{background:var(--g700);color:#fff;border-color:var(--g700);box-shadow:0 3px 10px rgba(34,77,56,.3);}
@@ -2021,8 +2024,19 @@ html{
       <svg viewBox="0 0 480 320" preserveAspectRatio="xMidYMid slice"><rect width="480" height="320" fill="#0d1e28"/><path d="M0 220 L80 160 L180 180 L280 130 L380 155 L480 130 L480 320 L0 320Z" fill="#1a3828" opacity=".8"/><path d="M0 280 L120 230 L240 245 L360 215 L480 235 L480 320 L0 320Z" fill="#0f2518"/><circle cx="180" cy="155" r="6" fill="#f5d060" opacity=".9"/><circle cx="340" cy="165" r="5" fill="#5bc47a" opacity=".85"/><circle cx="240" cy="125" r="4" fill="#e8a050" opacity=".8"/></svg>
       <div class="offline-banner"><div class="offline-dot"></div>📵 오프라인 · 저장된 정보로 안내 중</div>
     </div>
+    <!-- 지역 선택 UI -->
+    <div id="region-select-bar" style="position:absolute;bottom:0;left:0;right:0;z-index:50;padding:6px 10px 8px;background:linear-gradient(to top,rgba(9,22,17,.95),rgba(9,22,17,.0));overflow-x:auto;scrollbar-width:none;display:flex;gap:5px;align-items:center;">
+      <div class="rsel-chip active" id="rsel-auto" onclick="selectRegion('auto')" style="flex-shrink:0;">📍 내 위치</div>
+      <div class="rsel-chip" id="rsel-seoul" onclick="selectRegion('seoul')" style="flex-shrink:0;">🏙️ 서울</div>
+      <div class="rsel-chip" id="rsel-gyeonggi" onclick="selectRegion('gyeonggi')" style="flex-shrink:0;">🌿 경기</div>
+      <div class="rsel-chip" id="rsel-gangwon" onclick="selectRegion('gangwon')" style="flex-shrink:0;">🏔️ 강원</div>
+      <div class="rsel-chip" id="rsel-chungcheong" onclick="selectRegion('chungcheong')" style="flex-shrink:0;">🌾 충청</div>
+      <div class="rsel-chip" id="rsel-gyeongsang" onclick="selectRegion('gyeongsang')" style="flex-shrink:0;">🌊 경상</div>
+      <div class="rsel-chip" id="rsel-jeolla" onclick="selectRegion('jeolla')" style="flex-shrink:0;">🌺 전라</div>
+      <div class="rsel-chip" id="rsel-jeju" onclick="selectRegion('jeju')" style="flex-shrink:0;">🍊 제주</div>
+    </div>
     <div class="map-info-bar">
-      <div><div class="mic-name" id="mic-name">서울·근교 등산 지도</div><div class="mic-sub" id="mic-sub">28개 산 전체 분포</div></div>
+      <div><div class="mic-name" id="mic-name">등산 지도</div><div class="mic-sub" id="mic-sub">위치 확인 중...</div></div>
     </div>
   </div>
   <div class="bottom-sheet">
@@ -4482,6 +4496,7 @@ async function fetchWeather(){
     );
     lat=pos.coords.latitude; lng=pos.coords.longitude;
     window.__userLat=lat; window.__userLng=lng;
+    updateRegionByLocation(lat,lng);
   }catch(e){ /* 위치 거부 시 서울 기본값 사용 */ }
 
   try{
@@ -6878,7 +6893,113 @@ function sendTogetherInvite(){
   showToast(`📩 ${mt?.nm||course} 등산 제안을 친구들에게 보냈어요!`);
 }
 
-function initRecMap(){
+/* ════════════════════════════════════
+   지역 선택 시스템
+════════════════════════════════════ */
+const REGION_DATA={
+  auto:  {name:'내 위치',  center:[37.5665,126.9780], zoom:11, filter:null},
+  seoul: {name:'서울',     center:[37.5665,126.9780], zoom:11, filter:m=>m.region&&m.region.includes('서울')},
+  gyeonggi:{name:'경기',  center:[37.4138,127.5183], zoom:10, filter:m=>m.region&&m.region.includes('경기')},
+  gangwon: {name:'강원',  center:[37.8228,128.1555], zoom:9,  filter:m=>m.region&&m.region.includes('강원')},
+  chungcheong:{name:'충청', center:[36.6357,127.4917], zoom:9, filter:m=>(m.region&&(m.region.includes('충남')||m.region.includes('충북')||m.region.includes('천안')||m.region.includes('아산')||m.region.includes('대전')))||(m.city&&(m.city.includes('천안')||m.city.includes('아산')))},
+  gyeongsang:{name:'경상', center:[35.8714,128.6014], zoom:9,  filter:m=>m.region&&(m.region.includes('경남')||m.region.includes('경북')||m.region.includes('부산')||m.region.includes('대구'))},
+  jeolla: {name:'전라',   center:[35.1595,126.8526], zoom:9,  filter:m=>m.region&&(m.region.includes('전남')||m.region.includes('전북')||m.region.includes('광주'))},
+  jeju:   {name:'제주',   center:[33.4996,126.5312], zoom:10, filter:m=>m.region&&m.region.includes('제주')},
+};
+
+let currentRegion='auto';
+
+function selectRegion(regionKey){
+  currentRegion=regionKey;
+  // 칩 스타일 업데이트
+  document.querySelectorAll('.rsel-chip').forEach(c=>c.classList.remove('active'));
+  const chip=document.getElementById('rsel-'+regionKey);
+  if(chip) chip.classList.add('active');
+
+  const rd=REGION_DATA[regionKey];
+  if(!rd) return;
+
+  // 지역이 'auto'면 내 위치로
+  if(regionKey==='auto'){
+    applyAutoRegion();
+    return;
+  }
+
+  // 지도 이동
+  updateMapRegion(rd);
+
+  // 지도 텍스트 업데이트
+  const nameEl=document.getElementById('mic-name');
+  const subEl=document.getElementById('mic-sub');
+  const filtered=rd.filter?MTS.filter(rd.filter):MTS;
+  if(nameEl) nameEl.textContent=rd.name+' 등산 지도';
+  if(subEl) subEl.textContent=filtered.length+'개 산 분포';
+
+  // 검색 필터도 해당 지역으로
+  renderSearchResultsByRegion(rd.filter);
+}
+
+function applyAutoRegion(){
+  const lat=window.__userLat||37.5665;
+  const lng=window.__userLng||126.9780;
+  const regionName=getRegionNameByCoord(lat,lng);
+  const rd=getRegionDataByCoord(lat,lng);
+
+  updateMapRegion({center:[lat,lng], zoom:11});
+
+  const nameEl=document.getElementById('mic-name');
+  const subEl=document.getElementById('mic-sub');
+  // 내 위치 기준 50km 이내 산들
+  const nearMts=MTS.filter(m=>{
+    const d=Math.sqrt(Math.pow(m.lat-lat,2)+Math.pow(m.lng-lng,2))*111;
+    return d<=80;
+  });
+  if(nameEl) nameEl.textContent=regionName+' 등산 지도';
+  if(subEl) subEl.textContent=nearMts.length+'개 산 분포';
+}
+
+function getRegionNameByCoord(lat,lng){
+  if(lat>=37.4&&lat<=37.7&&lng>=126.7&&lng<=127.2) return '서울·근교';
+  if(lat>=36.5&&lat<=37.1&&lng>=126.8&&lng<=127.6) return '천안·아산·충청';
+  if(lat>=35.0&&lat<=35.4&&lng>=128.8&&lng<=129.3) return '부산·경남';
+  if(lat>=35.8&&lat<=36.1&&lng>=128.4&&lng<=128.8) return '대구·경북';
+  if(lat>=37.7&&lng>=127.5) return '강원';
+  if(lat>=34.5&&lat<=34.8&&lng>=126.3&&lng<=127.0) return '전남';
+  if(lat>=33.1&&lat<=33.6) return '제주';
+  return '전국';
+}
+
+function getRegionDataByCoord(lat,lng){
+  // 가장 가까운 지역 데이터 반환
+  return {center:[lat,lng], zoom:11};
+}
+
+function updateMapRegion(rd){
+  if(!recMap||!recMap._kakaoMap) return;
+  whenKakaoReady(function(){
+    if(recMap&&recMap._kakaoMap){
+      recMap._kakaoMap.setCenter(new kakao.maps.LatLng(rd.center[0],rd.center[1]));
+      recMap._kakaoMap.setLevel(rd.zoom?14-rd.zoom:4);
+    }
+  });
+}
+
+function renderSearchResultsByRegion(filterFn){
+  // 검색 패널이 열려있으면 해당 지역 결과로 업데이트
+  const searchPanel=document.getElementById('rp-search');
+  if(searchPanel&&searchPanel.style.display!=='none'){
+    renderSearchResults();
+  }
+}
+
+// 위치 감지 후 자동 지역 업데이트
+function updateRegionByLocation(lat,lng){
+  window.__userLat=lat;
+  window.__userLng=lng;
+  if(currentRegion==='auto'){
+    applyAutoRegion();
+  }
+}
   whenKakaoReady(function(){
     recMap=L.map('map-rec',{center:[37.565,127.010],zoom:11,zoomControl:false,attributionControl:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.88}).addTo(recMap);
