@@ -122,351 +122,243 @@ window.onerror = function(msg, src, line, col, err){
   return false;
 };
 /* ═══════════════════════════════════════════
-   PeakGuide 내장 지도 엔진 (Leaflet 호환 API)
-   file:// 환경에서 완전 작동
+   카카오맵 SDK 래퍼 (Leaflet 호환 API)
 ═══════════════════════════════════════════ */
-(function(global){
-'use strict';
-
-// 기본 유틸
-function extend(dest){for(var i=1;i<arguments.length;i++){var src=arguments[i];for(var k in src){if(src.hasOwnProperty(k)){dest[k]=src[k];}}}return dest;}
-function bind(fn,obj){return function(){return fn.apply(obj,arguments);};}
-function stamp(obj){obj._id=obj._id||(++stamp._id);return obj._id;}
-stamp._id=0;
-
-// 이벤트
-var Events={on:function(type,fn,ctx){this._events=this._events||{};(this._events[type]=this._events[type]||[]).push({fn:fn,ctx:ctx});return this;},off:function(type,fn){if(!this._events)return this;var evs=this._events[type]||[];for(var i=evs.length-1;i>=0;i--){if(evs[i].fn===fn)evs.splice(i,1);}return this;},fire:function(type,data){if(!this._events)return this;var evs=this._events[type]||[];for(var i=0;i<evs.length;i++){evs[i].fn.call(evs[i].ctx||this,extend({type:type,target:this},data));}return this;}};
-
-// 좌표
-function LatLng(lat,lng){this.lat=+lat;this.lng=+lng;}
-LatLng.prototype={distanceTo:function(o){var R=6371000,d2r=Math.PI/180;var dLat=(o.lat-this.lat)*d2r,dLng=(o.lng-this.lng)*d2r;var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(this.lat*d2r)*Math.cos(o.lat*d2r)*Math.sin(dLng/2)*Math.sin(dLng/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}};
-function latLng(a,b){return (a instanceof LatLng)?a:new LatLng(a,b);}
-
-// 바운드
-function LatLngBounds(sw,ne){this._sw=latLng(sw);this._ne=latLng(ne);}
-LatLngBounds.prototype={extend:function(ll){ll=latLng(ll);if(!this._sw){this._sw=latLng(ll.lat,ll.lng);this._ne=latLng(ll.lat,ll.lng);}else{this._sw.lat=Math.min(this._sw.lat,ll.lat);this._sw.lng=Math.min(this._sw.lng,ll.lng);this._ne.lat=Math.max(this._ne.lat,ll.lat);this._ne.lng=Math.max(this._ne.lng,ll.lng);}return this;},getCenter:function(){return latLng((this._sw.lat+this._ne.lat)/2,(this._sw.lng+this._ne.lng)/2);},pad:function(p){var sw=this._sw,ne=this._ne;var h=(ne.lat-sw.lat)*p,w=(ne.lng-sw.lng)*p;return new LatLngBounds(latLng(sw.lat-h,sw.lng-w),latLng(ne.lat+h,ne.lng+w));}};
-function latLngBounds(a,b){if(a instanceof LatLngBounds)return a;var bounds=new LatLngBounds();if(Array.isArray(a)){for(var i=0;i<a.length;i++){var ll=Array.isArray(a[i])?latLng(a[i][0],a[i][1]):latLng(a[i][0],a[i][1]);bounds.extend(ll);}}else{bounds.extend(a);if(b)bounds.extend(b);}return bounds;}
-
-// 포인트
-function Point(x,y){this.x=x;this.y=y;}
-
-// 타일 레이어
-function TileLayer(url,opts){this._url=url;this._opts=opts||{};}
-TileLayer.prototype=extend({},Events,{
-  addTo:function(map){this._map=map;this._init();return this;},
-  remove:function(){if(this._container&&this._container.parentNode)this._container.parentNode.removeChild(this._container);},
-  _init:function(){
-    var map=this._map;
-    this._container=document.createElement('div');
-    this._container.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;';
-    this._container.className='leaflet-layer';
-    map._panes.tilePane.appendChild(this._container);
-    map.on('moveend',this._update,this);
-    map.on('zoomend',this._update,this);
-    this._update();
-  },
-  _update:function(){
-    if(!this._map)return;
-    var map=this._map,z=Math.round(map._zoom),size=map._getSize();
-    if(size.x===0||size.y===0){
-      var self=this;setTimeout(function(){self._update();},100);return;
-    }
-    var center=map._center,tileSize=256;
-    var scale=Math.pow(2,z);
-    var originX=(center.lng+180)/360*scale;
-    var originY=(1-Math.log(Math.tan(center.lat*Math.PI/180)+1/Math.cos(center.lat*Math.PI/180))/Math.PI)/2*scale;
-    var px=originX*tileSize,py=originY*tileSize;
-    var startX=Math.floor((px-size.x/2)/tileSize)-1;
-    var startY=Math.floor((py-size.y/2)/tileSize)-1;
-    var endX=Math.ceil((px+size.x/2)/tileSize)+1;
-    var endY=Math.ceil((py+size.y/2)/tileSize)+1;
-    while(this._container.firstChild)this._container.removeChild(this._container.firstChild);
-    var self=this;
-    var loadedCount=0,errorCount=0,totalCount=(endX-startX+1)*(endY-startY+1);
-    for(var tx=startX;tx<=endX;tx++){
-      for(var ty=startY;ty<=endY;ty++){
-        (function(tx,ty){
-          var nty=Math.max(0,Math.min((1<<z)-1,ty));
-          var ntx=((tx%(1<<z))+(1<<z))%(1<<z);
-          var url=self._url
-            .replace('{s}',['a','b','c'][Math.abs(tx+ty)%3])
-            .replace('{z}',z).replace('{x}',ntx).replace('{y}',nty)
-            .replace('{r}','');
-          var img=document.createElement('img');
-          img.style.cssText='position:absolute;width:'+tileSize+'px;height:'+tileSize+'px;left:'+((tx*tileSize-(px-size.x/2))>>0)+'px;top:'+((ty*tileSize-(py-size.y/2))>>0)+'px;';
-          img.style.opacity=self._opts.opacity||1;
-          img.onerror=function(){
-            this.style.display='none';
-            errorCount++;
-            // 절반 이상 실패하면 SVG 폴백 지도 표시
-            if(errorCount>totalCount/2&&!self._fallbackShown){
-              self._fallbackShown=true;
-              self._showFallback();
-            }
-          };
-          img.onload=function(){loadedCount++;self.fire('tileload',{});};
-          img.src=url;
-          self._container.appendChild(img);
-        })(tx,ty);
+// 카카오맵 SDK 동적 로드
+(function(){
+  var script=document.createElement('script');
+  script.src='//dapi.kakao.com/v2/maps/sdk.js?appkey=c3cf59677aa54c92bed73d00e26cf68d&autoload=false';
+  script.onload=function(){
+    kakao.maps.load(function(){
+      window.__kakaoMapReady=true;
+      // 대기 중인 지도 초기화 콜백 실행
+      if(window.__mapInitQueue){
+        window.__mapInitQueue.forEach(function(fn){fn();});
+        window.__mapInitQueue=[];
       }
-    }
-  },
-  _showFallback:function(){
-    // 타일 로드 실패 시 SVG 격자 배경 표시
-    if(!this._map)return;
-    var size=this._map._getSize();
-    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;';
-    svg.setAttribute('width',size.x);svg.setAttribute('height',size.y);
-    // 배경
-    var bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    bg.setAttribute('width','100%');bg.setAttribute('height','100%');bg.setAttribute('fill','#1a3428');
-    svg.appendChild(bg);
-    // 격자 패턴
-    var step=40;
-    for(var x=0;x<size.x;x+=step){
-      var line=document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1',x);line.setAttribute('y1',0);line.setAttribute('x2',x);line.setAttribute('y2',size.y);
-      line.setAttribute('stroke','rgba(255,255,255,0.06)');line.setAttribute('stroke-width','1');
-      svg.appendChild(line);
-    }
-    for(var y=0;y<size.y;y+=step){
-      var line2=document.createElementNS('http://www.w3.org/2000/svg','line');
-      line2.setAttribute('x1',0);line2.setAttribute('y1',y);line2.setAttribute('x2',size.x);line2.setAttribute('y2',y);
-      line2.setAttribute('stroke','rgba(255,255,255,0.06)');line2.setAttribute('stroke-width','1');
-      svg.appendChild(line2);
-    }
-    // 중앙 안내 텍스트
-    var txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x',size.x/2);txt.setAttribute('y',size.y/2);
-    txt.setAttribute('text-anchor','middle');txt.setAttribute('fill','rgba(255,255,255,0.25)');
-    txt.setAttribute('font-size','11');txt.textContent='오프라인 지도';
-    svg.appendChild(txt);
-    this._container.insertBefore(svg,this._container.firstChild);
+    });
+  };
+  document.head.appendChild(script);
+})();
+
+// 카카오맵 준비되면 실행, 아니면 큐에 추가
+function whenKakaoReady(fn){
+  if(window.__kakaoMapReady){ fn(); }
+  else{
+    window.__mapInitQueue=window.__mapInitQueue||[];
+    window.__mapInitQueue.push(fn);
   }
-});
-
-// 마커
-function Marker(ll,opts){this._ll=latLng(ll[0]||ll.lat,ll[1]||ll.lng);this._opts=opts||{};}
-Marker.prototype=extend({},Events,{
-  addTo:function(map){this._map=map;this._init();return this;},
-  remove:function(){if(this._el&&this._el.parentNode)this._el.parentNode.removeChild(this._el);},
-  getLatLng:function(){return this._ll;},
-  bindPopup:function(content,opts){this._popupContent=content;this._popupOpts=opts||{};return this;},
-  openPopup:function(){
-    if(!this._map||!this._popupContent)return this;
-    this._map._openPopup(this._popupContent,this._ll,this._popupOpts);
-    return this;
-  },
-  _init:function(){
-    var map=this._map;
-    var icon=this._opts.icon;
-    this._el=document.createElement('div');
-    this._el.style.cssText='position:absolute;z-index:600;cursor:pointer;';
-    if(icon&&icon.options){
-      this._el.innerHTML=icon.options.html||'';
-      var sz=icon.options.iconSize||[24,24];
-      var an=icon.options.iconAnchor||[sz[0]/2,sz[1]/2];
-      this._el.style.marginLeft=(-an[0])+'px';
-      this._el.style.marginTop=(-an[1])+'px';
-    }else{
-      this._el.innerHTML='<div style="width:12px;height:12px;border-radius:50%;background:#3388ff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>';
-      this._el.style.marginLeft='-8px';this._el.style.marginTop='-8px';
-    }
-    var self=this;
-    this._el.addEventListener('click',function(e){e.stopPropagation();self.openPopup();});
-    this._el.addEventListener('touchend',function(e){e.stopPropagation();self.openPopup();});
-    map._panes.markerPane.appendChild(this._el);
-    map.on('moveend',this._update,this);
-    map.on('zoomend',this._update,this);
-    this._update();
-  },
-  _update:function(){
-    if(!this._map||!this._el)return;
-    var pt=this._map._latLngToPoint(this._ll);
-    this._el.style.left=pt.x+'px';this._el.style.top=pt.y+'px';
-  }
-});
-
-// 폴리라인
-function Polyline(lls,opts){this._lls=lls;this._opts=opts||{};}
-Polyline.prototype=extend({},Events,{
-  addTo:function(map){this._map=map;this._init();return this;},
-  remove:function(){if(this._el&&this._el.parentNode)this._el.parentNode.removeChild(this._el);},
-  _init:function(){
-    var map=this._map;
-    this._el=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-    var opts=this._opts;
-    this._el.setAttribute('stroke',opts.color||'#3388ff');
-    this._el.setAttribute('stroke-width',opts.weight||3);
-    this._el.setAttribute('stroke-opacity',opts.opacity||1);
-    this._el.setAttribute('fill','none');
-    this._el.setAttribute('stroke-linecap',opts.lineCap||'round');
-    this._el.setAttribute('stroke-linejoin',opts.lineJoin||'round');
-    if(opts.dashArray)this._el.setAttribute('stroke-dasharray',opts.dashArray.replace(/,/g,' '));
-    map._svgLayer.appendChild(this._el);
-    map.on('moveend',this._update,this);
-    map.on('zoomend',this._update,this);
-    this._update();
-  },
-  _update:function(){
-    if(!this._map||!this._el)return;
-    var pts=this._lls.map(function(ll){
-      var p=this._map._latLngToPoint(Array.isArray(ll)?latLng(ll[0],ll[1]):latLng(ll.lat,ll.lng));
-      return p.x+','+p.y;
-    },this);
-    this._el.setAttribute('points',pts.join(' '));
-  }
-});
-
-// DivIcon
-function DivIcon(opts){this.options=opts||{};}
-
-// 지도
-function Map(id,opts){
-  this._container=typeof id==='string'?document.getElementById(id):id;
-  this._opts=opts||{};
-  this._center=latLng(opts.center&&opts.center[0]||37.5,opts.center&&opts.center[1]||127.0);
-  this._zoom=opts.zoom||11;
-  this._layers=[];
-  this._events={};
-  this._init();
 }
-Map.prototype=extend({},Events,{
-  _init:function(){
-    var c=this._container;
-    c.style.position='relative';c.style.overflow='hidden';
-    // 배경
-    var bg=document.createElement('div');
-    bg.style.cssText='position:absolute;inset:0;background:#1c3020;';
-    c.appendChild(bg);
-    // Pane들
-    this._panes={};
-    var paneNames=['tile','overlay','shadow','marker','tooltip','popup'];
-    var zIndexes=[100,200,300,600,650,700];
-    for(var i=0;i<paneNames.length;i++){
-      var p=document.createElement('div');
-      p.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:'+zIndexes[i]+';';
-      if(paneNames[i]==='marker'||paneNames[i]==='popup')p.style.pointerEvents='auto';
-      this._panes[paneNames[i]+'Pane']=p;
-      c.appendChild(p);
-    }
-    // SVG 레이어 (폴리라인용)
-    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:200;overflow:visible;';
-    this._panes.tilePane.appendChild(svg);
-    this._svgLayer=svg;
-    // 팝업 컨테이너
-    this._popupEl=document.createElement('div');
-    this._popupEl.style.cssText='position:absolute;z-index:700;display:none;';
-    this._panes.popupPane.appendChild(this._popupEl);
-    // 터치/마우스 이벤트
-    this._initEvents();
-    // 오프라인 알림
-    this.scrollWheelZoom={disable:function(){}};
-  },
-  _getSize:function(){return{x:this._container.offsetWidth,y:this._container.offsetHeight};},
-  _latLngToPoint:function(ll){
-    ll=latLng(ll[0]||ll.lat,ll[1]||ll.lng);
-    var size=this._getSize();
-    var z=Math.pow(2,this._zoom)*256;
-    var cx=(this._center.lng+180)/360*z;
-    var cy=(1-Math.log(Math.tan(this._center.lat*Math.PI/180)+1/Math.cos(this._center.lat*Math.PI/180))/Math.PI)/2*z;
-    var x=(ll.lng+180)/360*z;
-    var y=(1-Math.log(Math.tan(ll.lat*Math.PI/180)+1/Math.cos(ll.lat*Math.PI/180))/Math.PI)/2*z;
-    return new Point(size.x/2+(x-cx),size.y/2+(y-cy));
-  },
-  _pointToLatLng:function(pt){
-    var size=this._getSize();
-    var z=Math.pow(2,this._zoom)*256;
-    var cx=(this._center.lng+180)/360*z;
-    var cy=(1-Math.log(Math.tan(this._center.lat*Math.PI/180)+1/Math.cos(this._center.lat*Math.PI/180))/Math.PI)/2*z;
-    var x=cx+(pt.x-size.x/2);
-    var y=cy+(pt.y-size.y/2);
-    var lng=x/z*360-180;
-    var n=Math.PI-2*Math.PI*y/z;
-    var lat=180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n)));
-    return latLng(lat,lng);
-  },
-  _initEvents:function(){
-    var self=this,isDragging=false,startPt=null,startCenter=null,lastDist=0;
-    var el=this._container;
-    // 마우스
-    el.addEventListener('mousedown',function(e){isDragging=true;startPt={x:e.clientX,y:e.clientY};startCenter={lat:self._center.lat,lng:self._center.lng};});
-    el.addEventListener('mousemove',function(e){if(!isDragging)return;var dx=e.clientX-startPt.x,dy=e.clientY-startPt.y;var size=self._getSize();var z=Math.pow(2,self._zoom)*256;self._center=latLng(startCenter.lat,startCenter.lng);var newLat=self._center.lat,newLng=self._center.lng-dx/z*360;var newCenter=latLng(newLat,newLng);self._center=newCenter;self.fire('move');self._redraw();});
-    el.addEventListener('mouseup',function(){isDragging=false;self.fire('moveend');});
-    el.addEventListener('mouseleave',function(){if(isDragging){isDragging=false;self.fire('moveend');}});
-    el.addEventListener('wheel',function(e){e.preventDefault();var delta=e.deltaY>0?-1:1;self._zoom=Math.max(8,Math.min(18,self._zoom+delta));self.fire('zoom');self.fire('zoomend');self._redraw();},{passive:true});
-    // 터치
-    el.addEventListener('touchstart',function(e){
-      // 버튼/탑바 터치면 지도 드래그 무시
-      if(e.target.closest('button,[onclick],.topbar-btn-sm,.map-topbar .logo-row,.ai-pill,.map-layer-btns')) return;
-      if(e.touches.length===1){isDragging=true;startPt={x:e.touches[0].clientX,y:e.touches[0].clientY};startCenter={lat:self._center.lat,lng:self._center.lng};}
-      else if(e.touches.length===2){isDragging=false;lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
-    },{passive:true});
-    el.addEventListener('touchmove',function(e){
-      if(e.touches.length===1&&isDragging){
-        var dx=e.touches[0].clientX-startPt.x,dy=e.touches[0].clientY-startPt.y;
-        var z=Math.pow(2,self._zoom)*256;
-        var newLng=startCenter.lng-dx/z*360;
-        var latRad=startCenter.lat*Math.PI/180;
-        var metersPerPx=156543.03392*Math.cos(latRad)/Math.pow(2,self._zoom);
-        var newLat=startCenter.lat+dy*metersPerPx/111320;
-        self._center=latLng(newLat,newLng);
-        self.fire('move');self._redraw();
-      }else if(e.touches.length===2){
-        var dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-        var delta=dist/lastDist;
-        if(Math.abs(delta-1)>0.05){self._zoom=Math.max(8,Math.min(18,self._zoom+(delta>1?0.3:-0.3)));lastDist=dist;self.fire('zoom');self.fire('zoomend');self._redraw();}
-      }
-    },{passive:true});
-    el.addEventListener('touchend',function(){isDragging=false;self.fire('moveend');},{passive:true});
-  },
-  _redraw:function(){this.fire('move');this.fire('moveend');},
-  _openPopup:function(content,ll,opts){
-    var self=this;
-    var el=this._popupEl;
-    var maxW=(opts&&opts.maxWidth)||220;
-    el.style.cssText='position:absolute;z-index:700;max-width:'+maxW+'px;';
-    el.innerHTML=content;
-    el.style.display='block';
-    var pt=this._latLngToPoint(ll);
-    el.style.left=(pt.x-maxW/2)+'px';
-    el.style.top=(pt.y-el.offsetHeight-12)+'px';
-    // 닫기 버튼
-    var close=el.querySelector('.leaflet-popup-close-button');
-    if(close)close.onclick=function(){el.style.display='none';};
-    // 배경 클릭 시 닫기
-    var oldClick=this._container.onclick;
-    this._container.onclick=function(){el.style.display='none';self._container.onclick=oldClick;};
-  },
-  panTo:function(ll,opts){this._center=latLng(ll[0]||ll.lat,ll[1]||ll.lng);this.fire('move');this.fire('moveend');this._redraw();return this;},
-  flyTo:function(ll,zoom,opts){this._center=latLng(ll[0]||ll.lat,ll[1]||ll.lng);if(zoom)this._zoom=zoom;this.fire('move');this.fire('moveend');this._redraw();return this;},
-  flyToBounds:function(bounds,opts){
-    if(bounds&&bounds._sw){var c=bounds.getCenter();this._center=c;}
-    this.fire('move');this.fire('moveend');this._redraw();return this;
-  },
-  fitBounds:function(bounds,opts){return this.flyToBounds(bounds,opts);},
-  invalidateSize:function(){this._redraw();return this;},
-  getZoom:function(){return this._zoom;},
-  setView:function(ll,z){this._center=latLng(ll[0],ll[1]);this._zoom=z;this.fire('move');this.fire('moveend');this._redraw();return this;},
-  remove:function(){while(this._container.firstChild)this._container.removeChild(this._container.firstChild);}
-});
 
-// 공개 API (Leaflet 호환)
+// Leaflet 호환 L 객체 (카카오맵 기반)
 var L={
-  map:function(id,opts){return new Map(id,opts);},
-  tileLayer:function(url,opts){return new TileLayer(url,opts);},
-  marker:function(ll,opts){return new Marker(Array.isArray(ll)?ll:[ll.lat,ll.lng],opts);},
-  polyline:function(lls,opts){return new Polyline(lls,opts);},
-  divIcon:function(opts){return new DivIcon(opts);},
-  latLng:function(a,b){return latLng(a,b);},
-  latLngBounds:function(a,b){return latLngBounds(a,b);}
-};
+  _maps:{},
+  map:function(id,opts){
+    var container=typeof id==='string'?document.getElementById(id):id;
+    var center=opts&&opts.center?opts.center:[37.5665,126.9780];
+    var zoom=opts&&opts.zoom?opts.zoom:13;
+    var mapObj={
+      _container:container,
+      _center:center,
+      _zoom:zoom,
+      _kakaoMap:null,
+      _markers:[],
+      _polylines:[],
+      _events:{},
+      on:function(evt,fn){
+        this._events[evt]=this._events[evt]||[];
+        this._events[evt].push(fn);
+        return this;
+      },
+      fire:function(evt,data){
+        (this._events[evt]||[]).forEach(function(fn){fn(data||{});});
+      },
+      invalidateSize:function(){
+        if(this._kakaoMap) this._kakaoMap.relayout();
+        return this;
+      },
+      setView:function(ll,z){
+        this._center=ll; this._zoom=z;
+        if(this._kakaoMap){
+          this._kakaoMap.setCenter(new kakao.maps.LatLng(ll[0],ll[1]));
+          this._kakaoMap.setLevel(14-z);
+        }
+        return this;
+      },
+      flyTo:function(ll,z){return this.setView(ll,z||this._zoom);},
+      panTo:function(ll){
+        if(this._kakaoMap) this._kakaoMap.panTo(new kakao.maps.LatLng(ll[0]||ll.lat,ll[1]||ll.lng));
+        return this;
+      },
+      fitBounds:function(bounds){
+        if(!this._kakaoMap||!bounds) return this;
+        try{
+          var sw=bounds._sw, ne=bounds._ne;
+          if(sw&&ne){
+            var kBounds=new kakao.maps.LatLngBounds(
+              new kakao.maps.LatLng(sw.lat,sw.lng),
+              new kakao.maps.LatLng(ne.lat,ne.lng)
+            );
+            this._kakaoMap.setBounds(kBounds);
+          }
+        }catch(e){}
+        return this;
+      },
+      getZoom:function(){ return this._kakaoMap?14-this._kakaoMap.getLevel():this._zoom; },
+      remove:function(){
+        this._markers.forEach(function(m){m.setMap(null);});
+        this._polylines.forEach(function(p){p.setMap(null);});
+        this._markers=[];
+        this._polylines=[];
+        if(this._kakaoMap) this._kakaoMap=null;
+        while(this._container.firstChild) this._container.removeChild(this._container.firstChild);
+      },
+      scrollWheelZoom:{disable:function(){}}
+    };
 
-global.L=L;
-})(window);
+    // 카카오맵 초기화
+    whenKakaoReady(function(){
+      var level=Math.max(1,Math.min(14,14-zoom));
+      var kakaoMap=new kakao.maps.Map(container,{
+        center:new kakao.maps.LatLng(center[0],center[1]),
+        level:level
+      });
+      mapObj._kakaoMap=kakaoMap;
+      mapObj.fire('load',{});
+    });
+
+    return mapObj;
+  },
+  tileLayer:function(url,opts){
+    // 카카오맵은 자체 타일 사용 — tileLayer는 무시
+    return {addTo:function(map){return this;},remove:function(){}};
+  },
+  marker:function(ll,opts){
+    var lat=Array.isArray(ll)?ll[0]:ll.lat;
+    var lng=Array.isArray(ll)?ll[1]:ll.lng;
+    var markerObj={
+      _ll:[lat,lng],
+      _opts:opts||{},
+      _kakaoMarker:null,
+      _map:null,
+      _popupContent:null,
+      addTo:function(map){
+        this._map=map;
+        whenKakaoReady(function(){
+          var self=markerObj;
+          if(!map._kakaoMap) return;
+          var position=new kakao.maps.LatLng(lat,lng);
+          var icon=opts&&opts.icon;
+          var marker;
+          if(icon&&icon.options&&icon.options.html){
+            // 커스텀 HTML 마커
+            var content=icon.options.html;
+            var overlay=new kakao.maps.CustomOverlay({
+              position:position,
+              content:content,
+              yAnchor:1
+            });
+            overlay.setMap(map._kakaoMap);
+            self._kakaoMarker=overlay;
+            // 클릭 이벤트
+            if(self._popupContent){
+              overlay.getContent&&overlay.getContent().addEventListener&&
+              overlay.getContent().addEventListener('click',function(){
+                self._showPopup(map);
+              });
+            }
+          } else {
+            marker=new kakao.maps.Marker({position:position});
+            marker.setMap(map._kakaoMap);
+            self._kakaoMarker=marker;
+            if(self._popupContent){
+              kakao.maps.event.addListener(marker,'click',function(){
+                self._showPopup(map);
+              });
+            }
+          }
+          map._markers.push(self._kakaoMarker);
+        });
+        return this;
+      },
+      bindPopup:function(content){
+        this._popupContent=content;
+        return this;
+      },
+      openPopup:function(){return this;},
+      _showPopup:function(map){
+        if(!this._popupContent||!map._kakaoMap) return;
+        var infoDiv=document.createElement('div');
+        infoDiv.style.cssText='position:absolute;z-index:999;background:#fff;border-radius:10px;padding:8px 12px;box-shadow:0 3px 12px rgba(0,0,0,.2);font-size:12px;transform:translate(-50%,-100%);margin-top:-10px;white-space:nowrap;';
+        infoDiv.innerHTML=this._popupContent+'<div style="text-align:right;margin-top:4px;"><span onclick="this.parentElement.parentElement.remove()" style="cursor:pointer;color:#999;font-size:11px;">✕</span></div>';
+        var pt=map._kakaoMap.getProjection().containerPointFromCoords(new kakao.maps.LatLng(this._ll[0],this._ll[1]));
+        infoDiv.style.left=pt.x+'px';
+        infoDiv.style.top=pt.y+'px';
+        map._container.appendChild(infoDiv);
+        setTimeout(function(){if(infoDiv.parentElement)infoDiv.remove();},4000);
+      },
+      setMap:function(m){
+        if(!m&&this._kakaoMarker){
+          if(this._kakaoMarker.setMap) this._kakaoMarker.setMap(null);
+        }
+      }
+    };
+    return markerObj;
+  },
+  polyline:function(lls,opts){
+    var lineObj={
+      _lls:lls,
+      _opts:opts||{},
+      _kakaoLine:null,
+      addTo:function(map){
+        whenKakaoReady(function(){
+          if(!map._kakaoMap) return;
+          var path=lls.map(function(ll){
+            return new kakao.maps.LatLng(Array.isArray(ll)?ll[0]:ll.lat, Array.isArray(ll)?ll[1]:ll.lng);
+          });
+          var polyline=new kakao.maps.Polyline({
+            path:path,
+            strokeWeight:opts&&opts.weight?opts.weight:5,
+            strokeColor:opts&&opts.color?opts.color:'#43c47a',
+            strokeOpacity:opts&&opts.opacity?opts.opacity:0.9,
+            strokeStyle:'solid'
+          });
+          polyline.setMap(map._kakaoMap);
+          lineObj._kakaoLine=polyline;
+          map._polylines.push(polyline);
+
+          // 경로에 맞게 지도 영역 조정
+          var bounds=new kakao.maps.LatLngBounds();
+          path.forEach(function(p){bounds.extend(p);});
+          map._kakaoMap.setBounds(bounds);
+        });
+        return this;
+      }
+    };
+    return lineObj;
+  },
+  divIcon:function(opts){return {options:opts||{}};},
+  latLng:function(a,b){return {lat:a,lng:b};},
+  latLngBounds:function(lls){
+    if(!lls||lls.length===0) return {_sw:{lat:37,lng:127},_ne:{lat:38,lng:128}};
+    var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
+    lls.forEach(function(ll){
+      var lat=Array.isArray(ll)?ll[0]:ll.lat;
+      var lng=Array.isArray(ll)?ll[1]:ll.lng;
+      minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);
+      minLng=Math.min(minLng,lng);maxLng=Math.max(maxLng,lng);
+    });
+    return {_sw:{lat:minLat,lng:minLng},_ne:{lat:maxLat,lng:maxLng},
+      pad:function(p){
+        var dLat=(maxLat-minLat)*p,dLng=(maxLng-minLng)*p;
+        return {_sw:{lat:minLat-dLat,lng:minLng-dLng},_ne:{lat:maxLat+dLat,lng:maxLng+dLng}};
+      }
+    };
+  }
+};
+window.L=L;
 </script>
+
 <style>
 :root{
   /* ── 다크 그린 팔레트 (세련된 버전) ── */
