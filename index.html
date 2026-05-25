@@ -4481,6 +4481,7 @@ async function fetchWeather(){
       navigator.geolocation?.getCurrentPosition(res, rej, {timeout:4000, maximumAge:300000})
     );
     lat=pos.coords.latitude; lng=pos.coords.longitude;
+    window.__userLat=lat; window.__userLng=lng;
   }catch(e){ /* 위치 거부 시 서울 기본값 사용 */ }
 
   try{
@@ -5533,19 +5534,31 @@ function calcMtScore(mt, cond){
   /* 5. 날씨 보정 (10점) */
   const windNum=parseFloat(wxData.wind)||6;
   const rainNum=parseInt(wxData.rain)||30;
-  if(windNum>=8)      score+=mt.windSafe*1.5; // 강풍이면 낮고 숲 많은 산 유리
+  if(windNum>=8)      score+=mt.windSafe*1.5;
   if(rainNum>=50)     score+=mt.windSafe*1.2;
   else                score+=10-(windNum*0.5);
 
   /* 6. 컨디션 보정 (10점) */
   const condVal=parseInt(cond.condScore)||70;
-  if(condVal>=80)      score+=10; // 컨디션 좋으면 모든 산 가능
+  if(condVal>=80)      score+=10;
   else if(condVal>=60) score+= (userLv<=mt.lvMax?8:3);
-  else                 score+= (mt.lvMax<=1?10:3); // 컨디션 나쁘면 쉬운 산만
+  else                 score+= (mt.lvMax<=1?10:3);
 
   /* 7. 동행 보정 (bonus) */
   if(cond.group==='👨‍👩‍👧 가족'&&mt.familyOk)  score+=8;
-  if(cond.group==='🧍 혼자')                  score+=3; // 혼자는 다 가능
+  if(cond.group==='🧍 혼자')                  score+=3;
+
+  /* 8. 위치 기반 거리 보정 (최대 15점) */
+  if(window.__userLat&&window.__userLng){
+    const dLat=mt.lat-window.__userLat;
+    const dLng=mt.lng-window.__userLng;
+    const distKm=Math.sqrt(dLat*dLat+dLng*dLng)*111;
+    if(distKm<=20)       score+=15;
+    else if(distKm<=50)  score+=12;
+    else if(distKm<=100) score+=8;
+    else if(distKm<=150) score+=4;
+    else                 score+=0;
+  }
 
   return Math.round(Math.min(score, 98));
 }
