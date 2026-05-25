@@ -2254,10 +2254,10 @@ html{
       <div class="ai-load" id="ai-load">
         <div class="sp"><div class="sp-r"></div><div class="sp-r"></div><div class="sp-c"><svg viewBox="0 0 24 24" fill="white" width="12"><path d="M12 3L4 19h16L12 3z"/></svg></div></div>
         <div style="font-size:14px;font-weight:800;color:var(--text1)">AI 최적 코스 분석 중</div>
-        <div style="font-size:11px;color:var(--text4)">서울·근교 28개 산 데이터 처리 중...</div>
+        <div style="font-size:11px;color:var(--text4)" id="ai-load-msg">전국 산 데이터 처리 중...</div>
         <div class="step-list">
           <div class="step-item" id="st1"><div class="sdot"></div>기상청 실시간 날씨 수집</div>
-          <div class="step-item" id="st2"><div class="sdot"></div>28개 산 상황 분석</div>
+          <div class="step-item" id="st2"><div class="sdot"></div><span id="st2-txt">산 상황 분석</span></div>
           <div class="step-item" id="st3"><div class="sdot"></div>컨디션·경험치 매칭</div>
           <div class="step-item" id="st4"><div class="sdot"></div>안전 구간 필터링</div>
           <div class="step-item" id="st5"><div class="sdot"></div>AI 코멘트 생성 중...</div>
@@ -6317,32 +6317,46 @@ function startTrackingByMt(mtId){
    AI 분석 플로우
 ════════════════════════════════════ */
 function startAI(){
-  // ① 비회원도 AI 추천 가능
   if(!currentUser){
     currentUser={id:'guest',nick:'등산객',isGuest:true};
   }
   document.getElementById('rp-cond').style.display='none';
   const ld=document.getElementById('ai-load');ld.classList.add('show');
-  // ② 로딩 시작 전에 조건을 미리 스냅샷으로 읽어 저장
+
+  // 현재 선택된 지역에 맞게 메시지 업데이트
+  const region=window.__selectedRegion||'auto';
+  const rd=REGION_INFO[region];
+  let regionName='전국';
+  let mtCount=MTS.length;
+  if(region==='auto'&&window.__userLat&&window.__userLng){
+    regionName='내 위치 근처';
+    mtCount=MTS.filter(m=>Math.sqrt(Math.pow(m.lat-window.__userLat,2)+Math.pow(m.lng-window.__userLng,2))*111<=150).length;
+  } else if(rd){
+    regionName=rd.name;
+    mtCount=rd.filter?MTS.filter(rd.filter).length:MTS.length;
+  }
+  const msgEl=document.getElementById('ai-load-msg');
+  if(msgEl) msgEl.textContent=`${regionName} ${mtCount}개 산 데이터 처리 중...`;
+  const st2El=document.getElementById('st2-txt');
+  if(st2El) st2El.textContent=`${mtCount}개 산 상황 분석`;
+
   const condSnapshot=getConditions();
   ['st1','st2','st3','st4','st5'].forEach((id,i)=>setTimeout(()=>document.getElementById(id).classList.add('done'),400+i*600));
   setTimeout(async()=>{
     ld.classList.remove('show');
     document.getElementById('rp-res').style.display='';
-    // 빈 상태 숨기고 결과 표시
     document.getElementById('res-empty-state').style.display='none';
     document.getElementById('res-result-state').style.display='';
-    // AI 분석 모드 뱃지 업데이트
     const modeLbl = document.getElementById('res-mode-label');
     if(modeLbl) modeLbl.textContent = '🤖 AI 맞춤 분석 완료';
     const modeBanner = document.getElementById('res-mode-banner');
     if(modeBanner){ modeBanner.style.background='linear-gradient(135deg,rgba(45,96,66,.08),rgba(82,194,117,.08))'; modeBanner.style.borderColor='rgba(82,194,117,.3)'; }
     const cardsTitle = document.getElementById('res-cards-title');
-    if(cardsTitle) cardsTitle.textContent = 'AI 추천 코스';
+    if(cardsTitle) cardsTitle.textContent = `${regionName} AI 추천 코스`;
     document.getElementById('rec-cards').innerHTML=skeletonCards(3);
     ['st1','st2','st3','st4','st5'].forEach(id=>document.getElementById(id).classList.remove('done'));
     calcWeatherIndex();
-    await renderRecCards(condSnapshot); // 스냅샷 조건 전달
+    await renderRecCards(condSnapshot);
     document.getElementById('rp-res').style.display='';
     document.getElementById('rtab-cond').classList.remove('active');
     document.getElementById('rtab-res').classList.add('active');
