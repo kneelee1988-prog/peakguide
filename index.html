@@ -674,8 +674,10 @@ body{
 .topbar-btns{display:flex;gap:5px;}
 .topbar-btn-sm{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;pointer-events:auto;position:relative;z-index:1001;touch-action:manipulation;-webkit-touch-callout:none;}
 .map-info-bar{position:absolute;bottom:0;left:0;right:0;z-index:600;padding:8px 13px 10px;background:linear-gradient(to top,rgba(9,22,17,.88) 0%,transparent 100%);display:flex;align-items:center;justify-content:space-between;}
-.mic-name{font-size:12px;font-weight:800;color:#fff;}
-.mic-sub{font-size:10px;color:var(--g300);margin-top:1px;}
+.rchip{flex-shrink:0;padding:5px 11px;border-radius:16px;font-size:11px;font-weight:700;color:rgba(255,255,255,.75);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);cursor:pointer;white-space:nowrap;transition:all .18s;backdrop-filter:blur(4px);}
+.rchip.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(67,196,122,.4);}
+.rchip:active{transform:scale(.95);}
+#region-bar::-webkit-scrollbar{display:none;}
 
 /* 날씨 위젯 */
 .wx-row{display:flex;gap:6px;}
@@ -2128,7 +2130,18 @@ html{
       <div class="offline-banner"><div class="offline-dot"></div>📵 오프라인 · 저장된 정보로 안내 중</div>
     </div>
     <div class="map-info-bar">
-      <div><div class="mic-name" id="mic-name">서울·근교 등산 지도</div><div class="mic-sub" id="mic-sub">28개 산 전체 분포</div></div>
+      <div><div class="mic-name" id="mic-name">전국 등산 지도</div><div class="mic-sub" id="mic-sub">전체 산 분포</div></div>
+    </div>
+    <!-- 지역 선택 칩 -->
+    <div id="region-bar" style="position:absolute;bottom:36px;left:0;right:0;z-index:601;padding:4px 10px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;">
+      <div class="rchip active" id="rc-auto" onclick="selectMapRegion('auto')">📍 내 위치</div>
+      <div class="rchip" id="rc-seoul" onclick="selectMapRegion('seoul')">🏙️ 서울</div>
+      <div class="rchip" id="rc-gyeonggi" onclick="selectMapRegion('gyeonggi')">🌿 경기</div>
+      <div class="rchip" id="rc-gangwon" onclick="selectMapRegion('gangwon')">🏔️ 강원</div>
+      <div class="rchip" id="rc-chungcheong" onclick="selectMapRegion('chungcheong')">🌾 충청</div>
+      <div class="rchip" id="rc-gyeongsang" onclick="selectMapRegion('gyeongsang')">🌊 경상</div>
+      <div class="rchip" id="rc-jeolla" onclick="selectMapRegion('jeolla')">🌺 전라</div>
+      <div class="rchip" id="rc-jeju" onclick="selectMapRegion('jeju')">🍊 제주</div>
     </div>
   </div>
   <div class="bottom-sheet">
@@ -3790,7 +3803,314 @@ const MTS=[
    toilet:{count:3,locations:['입구','중간','정상']},
    transport:{bus:'아산 시내버스 (도고온천 방면)',subway:'없음 (온양온천역에서 버스)'},
    top100:false,
-   wp:[[36.708,126.868],[36.709,126.871],[36.711,126.873],[36.713,126.875],[36.715,126.877],[36.716,126.878]]}
+   wp:[[36.708,126.868],[36.709,126.871],[36.711,126.873],[36.713,126.875],[36.715,126.877],[36.716,126.878]]},
+
+  /* ══════════════════ 100대 명산 추가분 (53~100위) ══════════════════ */
+  {id:'cheonseong2',nm:'천성산',lat:35.4700,lng:129.0800,alt:922,color:'#78b8a0',region:'경남',
+   course:'원효봉 코스',dist:'8.0km',time:'3.8h',diff:'초급',
+   tags:['숲길','계곡'],lvMin:0,lvMax:2,distKm:8.0,timeMin:228,
+   access:3,crowd:2,scenic:3,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'내원사 주차장'},
+   toilet:{count:3,locations:['내원사','중간','정상']},
+   transport:{bus:'양산에서 버스',subway:'없음'},
+   top100:true,top100rank:53,wp:[[35.463,129.073],[35.468,129.078],[35.472,129.083]]},
+
+  {id:'yeongchuk',nm:'영축산',lat:35.5200,lng:129.0600,alt:1081,color:'#b0c8a8',region:'경남',
+   course:'통도사 코스',dist:'10.0km',time:'4.8h',diff:'중급',
+   tags:['숲길','역사'],lvMin:1,lvMax:3,distKm:10.0,timeMin:288,
+   access:2,crowd:2,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'승용차 3,000원',capacity:'300대',info:'통도사 주차장'},
+   toilet:{count:4,locations:['통도사','중간','영축산']},
+   transport:{bus:'양산에서 버스',subway:'없음'},
+   top100:true,top100rank:54,wp:[[35.513,129.053],[35.518,129.058],[35.523,129.063]]},
+
+  {id:'geumjeong',nm:'금정산',lat:35.2800,lng:129.0500,alt:802,color:'#d0a870',region:'부산',
+   course:'고당봉 코스',dist:'9.6km',time:'4.0h',diff:'초~중급',
+   tags:['암릉','도심뷰','역사'],lvMin:1,lvMax:2,distKm:9.6,timeMin:240,
+   access:4,crowd:4,scenic:4,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'300대',info:'범어사 주차장'},
+   toilet:{count:5,locations:['범어사','중간','고당봉']},
+   transport:{bus:'부산 지하철',subway:'1호선 범어사역 도보 20분'},
+   top100:true,top100rank:56,wp:[[35.273,129.043],[35.278,129.048],[35.283,129.053]]},
+
+  {id:'ununjang',nm:'운장산',lat:35.8300,lng:127.4000,alt:1126,color:'#90c0a0',region:'전북',
+   course:'오두봉 코스',dist:'9.0km',time:'4.5h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:9.0,timeMin:270,
+   access:2,crowd:1,scenic:3,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'대불리 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'진안에서 버스',subway:'없음'},
+   top100:true,top100rank:57,wp:[[35.823,127.393],[35.828,127.398],[35.833,127.403]]},
+
+  {id:'hambaek',nm:'함백산',lat:37.1500,lng:128.9000,alt:1573,color:'#90a8d0',region:'강원',
+   course:'정상 코스',dist:'5.6km',time:'2.5h',diff:'초급',
+   tags:['숲길','일출'],lvMin:0,lvMax:2,distKm:5.6,timeMin:150,
+   access:2,crowd:2,scenic:4,exercise:3,windSafe:2,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'만항재 주차장'},
+   toilet:{count:2,locations:['만항재','정상']},
+   transport:{bus:'정선·태백에서 버스',subway:'없음'},
+   top100:true,top100rank:59,wp:[[37.143,128.893],[37.148,128.898],[37.152,128.903]]},
+
+  {id:'hwangak',nm:'황악산',lat:36.1100,lng:127.9600,alt:1111,color:'#a8c0a0',region:'경북',
+   course:'직지사 코스',dist:'9.4km',time:'4.5h',diff:'초~중급',
+   tags:['숲길','역사','계곡'],lvMin:1,lvMax:2,distKm:9.4,timeMin:270,
+   access:2,crowd:2,scenic:3,exercise:4,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'200대',info:'직지사 주차장'},
+   toilet:{count:4,locations:['직지사','중간','황악산']},
+   transport:{bus:'김천에서 버스',subway:'없음'},
+   top100:true,top100rank:61,wp:[[36.103,127.953],[36.108,127.958],[36.113,127.963]]},
+
+  {id:'sinbul',nm:'신불산',lat:35.5700,lng:129.0300,alt:1159,color:'#a8c090',region:'경남',
+   course:'억새평원 코스',dist:'9.2km',time:'4.5h',diff:'초~중급',
+   tags:['숲길','꽃길'],lvMin:1,lvMax:2,distKm:9.2,timeMin:270,
+   access:2,crowd:3,scenic:5,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'배내골 주차장'},
+   toilet:{count:3,locations:['배내골','중간','신불산']},
+   transport:{bus:'언양에서 버스',subway:'없음'},
+   top100:true,top100rank:62,wp:[[35.563,129.023],[35.568,129.028],[35.573,129.033]]},
+
+  {id:'gibaek',nm:'기백산',lat:35.7600,lng:127.8100,alt:1331,color:'#a8c890',region:'경남/전북',
+   course:'금원산 연계',dist:'11.2km',time:'5.5h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:11.2,timeMin:330,
+   access:2,crowd:1,scenic:4,exercise:5,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'금원산자연휴양림 주차장'},
+   toilet:{count:3,locations:['입구','금원산','기백산']},
+   transport:{bus:'거창에서 버스',subway:'없음'},
+   top100:true,top100rank:64,wp:[[35.753,127.803],[35.758,127.808],[35.763,127.813]]},
+
+  {id:'hwangmae',nm:'황매산',lat:35.5000,lng:127.9800,alt:1108,color:'#d0b880',region:'경남',
+   course:'황매평전 코스',dist:'8.6km',time:'4.0h',diff:'초~중급',
+   tags:['숲길','꽃길'],lvMin:0,lvMax:2,distKm:8.6,timeMin:240,
+   access:2,crowd:3,scenic:5,exercise:3,windSafe:2,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'300대',info:'황매산 주차장'},
+   toilet:{count:4,locations:['주차장','황매평전','정상']},
+   transport:{bus:'합천에서 버스',subway:'없음'},
+   top100:true,top100rank:66,wp:[[35.493,127.973],[35.498,127.978],[35.503,127.983]]},
+
+  {id:'deokhang',nm:'덕항산',lat:37.1800,lng:129.0700,alt:1071,color:'#a0b8d0',region:'강원',
+   course:'정상 코스',dist:'8.2km',time:'4.0h',diff:'초~중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:2,distKm:8.2,timeMin:240,
+   access:2,crowd:1,scenic:3,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'80대',info:'환선굴 주차장'},
+   toilet:{count:3,locations:['환선굴','중간','정상']},
+   transport:{bus:'삼척에서 버스',subway:'없음'},
+   top100:true,top100rank:67,wp:[[37.173,129.063],[37.178,129.068],[37.183,129.073]]},
+
+  {id:'myeongseong',nm:'명성산',lat:38.0900,lng:127.3400,alt:923,color:'#b0a8d0',region:'경기/강원',
+   course:'정상 코스',dist:'8.0km',time:'3.5h',diff:'초급',
+   tags:['숲길','꽃길'],lvMin:0,lvMax:2,distKm:8.0,timeMin:210,
+   access:2,crowd:3,scenic:4,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'산정호수 주차장'},
+   toilet:{count:3,locations:['산정호수','중간','정상']},
+   transport:{bus:'포천에서 버스',subway:'없음'},
+   top100:true,top100rank:69,wp:[[38.083,127.333],[38.088,127.338],[38.092,127.343]]},
+
+  {id:'cheonggwan',nm:'천관산',lat:34.7000,lng:126.9000,alt:723,color:'#d0b060',region:'전남',
+   course:'연대봉 코스',dist:'6.8km',time:'3.0h',diff:'초급',
+   tags:['암릉','꽃길'],lvMin:0,lvMax:2,distKm:6.8,timeMin:180,
+   access:2,crowd:1,scenic:4,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'천관산 입구 주차장'},
+   toilet:{count:3,locations:['입구','중간','정상']},
+   transport:{bus:'장흥에서 버스',subway:'없음'},
+   top100:true,top100rank:71,wp:[[34.693,126.893],[34.698,126.898],[34.703,126.903]]},
+
+  {id:'ungbong',nm:'운악산',lat:37.9000,lng:127.3100,alt:935,color:'#c0a8b0',region:'경기',
+   course:'정상 코스',dist:'7.6km',time:'3.5h',diff:'초~중급',
+   tags:['암릉','숲길'],lvMin:1,lvMax:2,distKm:7.6,timeMin:210,
+   access:2,crowd:2,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'현등사 주차장'},
+   toilet:{count:3,locations:['현등사','중간','정상']},
+   transport:{bus:'포천에서 버스',subway:'없음'},
+   top100:true,top100rank:73,wp:[[37.893,127.303],[37.898,127.308],[37.903,127.313]]},
+
+  {id:'yudalsan',nm:'유달산',lat:34.7700,lng:126.3700,alt:228,color:'#d0c0a0',region:'전남',
+   course:'일등바위 코스',dist:'4.2km',time:'1.8h',diff:'입문',
+   tags:['암릉','도심뷰','역사'],lvMin:0,lvMax:1,distKm:4.2,timeMin:108,
+   access:4,crowd:3,scenic:4,exercise:2,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'유달산 주차장'},
+   toilet:{count:4,locations:['입구','중간','일등바위']},
+   transport:{bus:'목포 시내버스',subway:'없음'},
+   top100:true,top100rank:74,wp:[[34.763,126.363],[34.768,126.368],[34.773,126.373]]},
+
+  {id:'hamseong',nm:'황석산',lat:35.5800,lng:127.7600,alt:1190,color:'#a0c060',region:'경남',
+   course:'정상 코스',dist:'9.4km',time:'4.5h',diff:'중급',
+   tags:['암릉','숲길'],lvMin:2,lvMax:3,distKm:9.4,timeMin:270,
+   access:2,crowd:1,scenic:4,exercise:5,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'입구 주차장'},
+   toilet:{count:3,locations:['입구','중간','정상']},
+   transport:{bus:'함양에서 버스',subway:'없음'},
+   top100:true,top100rank:76,wp:[[35.573,127.753],[35.578,127.758],[35.583,127.763]]},
+
+  {id:'baekun',nm:'백운산(광양)',lat:35.1000,lng:127.6700,alt:1222,color:'#90c8a0',region:'전남',
+   course:'정상 코스',dist:'10.2km',time:'5.0h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:10.2,timeMin:300,
+   access:2,crowd:1,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'성불사 주차장'},
+   toilet:{count:3,locations:['성불사','중간','정상']},
+   transport:{bus:'광양에서 버스',subway:'없음'},
+   top100:true,top100rank:77,wp:[[35.093,127.663],[35.098,127.668],[35.103,127.673]]},
+
+  {id:'jogye',nm:'조계산',lat:35.0200,lng:127.0000,alt:884,color:'#70b890',region:'전남',
+   course:'장군봉 코스',dist:'8.8km',time:'4.0h',diff:'초급',
+   tags:['숲길','역사'],lvMin:0,lvMax:2,distKm:8.8,timeMin:240,
+   access:2,crowd:2,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'선암사·송광사 주차장'},
+   toilet:{count:4,locations:['선암사','송광사','중간']},
+   transport:{bus:'순천에서 버스',subway:'없음'},
+   top100:true,top100rank:78,wp:[[35.013,126.993],[35.018,126.998],[35.023,127.003]]},
+
+  {id:'deoksung',nm:'덕숭산',lat:36.6300,lng:126.6600,alt:495,color:'#c8b890',region:'충남',
+   course:'수덕사 코스',dist:'5.8km',time:'2.5h',diff:'초급',
+   tags:['숲길','역사'],lvMin:0,lvMax:2,distKm:5.8,timeMin:150,
+   access:3,crowd:2,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'200대',info:'수덕사 주차장'},
+   toilet:{count:3,locations:['수덕사','중간','정상']},
+   transport:{bus:'예산에서 버스',subway:'없음'},
+   top100:true,top100rank:79,wp:[[36.623,126.653],[36.628,126.658],[36.633,126.663]]},
+
+  {id:'garisan',nm:'가리산',lat:37.8500,lng:127.8900,alt:1051,color:'#88b0a0',region:'강원',
+   course:'정상 코스',dist:'8.4km',time:'4.0h',diff:'초~중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:2,distKm:8.4,timeMin:240,
+   access:2,crowd:1,scenic:3,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'가리산 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'춘천에서 버스',subway:'없음'},
+   top100:true,top100rank:81,wp:[[37.843,127.883],[37.848,127.888],[37.853,127.893]]},
+
+  {id:'mindulle',nm:'민주지산',lat:36.0000,lng:127.8800,alt:1242,color:'#98b870',region:'충북/경북',
+   course:'삼도봉 코스',dist:'10.4km',time:'5.0h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:10.4,timeMin:300,
+   access:2,crowd:1,scenic:3,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'물한계곡 주차장'},
+   toilet:{count:2,locations:['물한계곡','정상']},
+   transport:{bus:'영동에서 버스',subway:'없음'},
+   top100:true,top100rank:83,wp:[[35.993,127.873],[35.998,127.878],[36.003,127.883]]},
+
+  {id:'jeoksan',nm:'적상산',lat:35.9600,lng:127.6700,alt:1034,color:'#c0a870',region:'전북',
+   course:'안국사 코스',dist:'7.6km',time:'3.5h',diff:'초급',
+   tags:['숲길','역사'],lvMin:0,lvMax:2,distKm:7.6,timeMin:210,
+   access:2,crowd:1,scenic:3,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'안국사 주차장'},
+   toilet:{count:3,locations:['입구','안국사','정상']},
+   transport:{bus:'무주에서 버스',subway:'없음'},
+   top100:true,top100rank:84,wp:[[35.953,127.663],[35.958,127.668],[35.963,127.673]]},
+
+  {id:'byeongseong',nm:'방장산',lat:35.4400,lng:126.7800,alt:743,color:'#b0c8a0',region:'전북/전남',
+   course:'정상 코스',dist:'7.0km',time:'3.2h',diff:'초급',
+   tags:['숲길'],lvMin:0,lvMax:2,distKm:7.0,timeMin:192,
+   access:2,crowd:1,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'방장산 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'정읍·장성에서 버스',subway:'없음'},
+   top100:true,top100rank:86,wp:[[35.433,126.773],[35.438,126.778],[35.443,126.783]]},
+
+  {id:'duryun',nm:'두륜산',lat:34.5200,lng:126.6500,alt:703,color:'#80c0a0',region:'전남',
+   course:'가련봉 코스',dist:'7.8km',time:'3.5h',diff:'초급',
+   tags:['숲길','역사'],lvMin:0,lvMax:2,distKm:7.8,timeMin:210,
+   access:2,crowd:2,scenic:4,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'200대',info:'대흥사 주차장'},
+   toilet:{count:4,locations:['대흥사','케이블카','가련봉']},
+   transport:{bus:'해남에서 버스',subway:'없음'},
+   top100:true,top100rank:87,wp:[[34.513,126.643],[34.518,126.648],[34.523,126.653]]},
+
+  {id:'jeombong',nm:'점봉산',lat:38.0100,lng:128.4700,alt:1424,color:'#78a8b8',region:'강원',
+   course:'곰배령 코스',dist:'8.0km',time:'3.8h',diff:'초급',
+   tags:['숲길','꽃길'],lvMin:0,lvMax:2,distKm:8.0,timeMin:228,
+   access:1,crowd:2,scenic:5,exercise:3,windSafe:2,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'진동계곡 주차장'},
+   toilet:{count:2,locations:['진동계곡','곰배령']},
+   transport:{bus:'인제에서 버스',subway:'없음'},
+   top100:true,top100rank:88,wp:[[38.003,128.463],[38.008,128.468],[38.013,128.473]]},
+
+  {id:'daeam',nm:'대암산',lat:38.2100,lng:128.1400,alt:1316,color:'#78a8c0',region:'강원',
+   course:'정상 코스',dist:'9.0km',time:'4.5h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:9.0,timeMin:270,
+   access:1,crowd:1,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'50대',info:'입구 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'인제에서 버스',subway:'없음'},
+   top100:true,top100rank:89,wp:[[38.203,128.133],[38.208,128.138],[38.213,128.143]]},
+
+  {id:'bangtae',nm:'방태산',lat:38.0500,lng:128.3800,alt:1444,color:'#88b0c0',region:'강원',
+   course:'주억봉 코스',dist:'11.0km',time:'5.5h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:11.0,timeMin:330,
+   access:1,crowd:1,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'80대',info:'개인약수 주차장'},
+   toilet:{count:2,locations:['개인약수','중간']},
+   transport:{bus:'인제에서 버스',subway:'없음'},
+   top100:true,top100rank:91,wp:[[38.043,128.373],[38.048,128.378],[38.053,128.383]]},
+
+  {id:'sudosa2',nm:'수도산',lat:35.9110,lng:127.9110,alt:1317,color:'#88b890',region:'경북',
+   course:'정상 코스',dist:'11.0km',time:'5.0h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:11.0,timeMin:300,
+   access:2,crowd:1,scenic:4,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'수도암 주차장'},
+   toilet:{count:3,locations:['수도암','중간','정상']},
+   transport:{bus:'김천에서 버스',subway:'없음'},
+   top100:true,top100rank:93,wp:[[35.905,127.905],[35.910,127.910],[35.914,127.914]]},
+
+  {id:'gumosan2',nm:'금오산',lat:36.1200,lng:128.3100,alt:977,color:'#c8a060',region:'경북',
+   course:'현월봉 코스',dist:'8.6km',time:'4.0h',diff:'초~중급',
+   tags:['암릉','계곡','역사'],lvMin:1,lvMax:2,distKm:8.6,timeMin:240,
+   access:3,crowd:2,scenic:4,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'승용차 1,000원',capacity:'300대',info:'금오산도립공원 주차장'},
+   toilet:{count:4,locations:['입구','약사암','현월봉']},
+   transport:{bus:'구미에서 버스',subway:'없음'},
+   top100:true,top100rank:94,wp:[[36.113,128.303],[36.118,128.308],[36.122,128.313]]},
+
+  {id:'palgong',nm:'팔공산',lat:35.9930,lng:128.6930,alt:1193,color:'#e09050',region:'대구/경북',
+   course:'비로봉 코스',dist:'10.8km',time:'5.0h',diff:'중급',
+   tags:['암릉','도심뷰','역사'],lvMin:1,lvMax:3,distKm:10.8,timeMin:300,
+   access:3,crowd:4,scenic:5,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'400대',info:'동화사·갓바위 주차장'},
+   toilet:{count:6,locations:['동화사','중간','비로봉']},
+   transport:{bus:'대구 팔공산 버스',subway:'없음'},
+   top100:true,top100rank:95,wp:[[35.986,128.686],[35.991,128.691],[35.996,128.696]]},
+
+  {id:'gayasan2',nm:'가야산',lat:35.8240,lng:128.1110,alt:1433,color:'#c87850',region:'경남/경북',
+   course:'칠불봉 코스',dist:'12.8km',time:'6.0h',diff:'중급',
+   tags:['암릉','숲길','역사'],lvMin:2,lvMax:3,distKm:12.8,timeMin:360,
+   access:2,crowd:3,scenic:5,exercise:5,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'승용차 3,000원',capacity:'400대',info:'백운동·해인사 주차장'},
+   toilet:{count:5,locations:['백운동','중간','칠불봉']},
+   transport:{bus:'대구·합천에서 해인사 버스',subway:'없음'},
+   top100:true,top100rank:96,wp:[[35.815,128.105],[35.821,128.110],[35.826,128.115]]},
+
+  {id:'songni2',nm:'속리산',lat:36.5400,lng:127.8600,alt:1058,color:'#88c890',region:'충북',
+   course:'천왕봉 코스',dist:'9.2km',time:'4.5h',diff:'초~중급',
+   tags:['숲길','계곡','역사'],lvMin:1,lvMax:2,distKm:9.2,timeMin:270,
+   access:3,crowd:3,scenic:4,exercise:4,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'500대',info:'법주사 주차장'},
+   toilet:{count:5,locations:['법주사 입구','세심정','천왕봉']},
+   transport:{bus:'보은·청주에서 속리산 버스',subway:'없음'},
+   top100:true,top100rank:97,wp:[[36.533,127.853],[36.538,127.858],[36.543,127.863]]},
+
+  {id:'woraksan2',nm:'월악산',lat:36.8680,lng:128.0790,alt:1097,color:'#9090e0',region:'충북',
+   course:'영봉 코스',dist:'9.6km',time:'5.0h',diff:'중급',
+   tags:['암릉','계곡'],lvMin:1,lvMax:3,distKm:9.6,timeMin:300,
+   access:3,crowd:2,scenic:5,exercise:5,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'덕주사 주차장'},
+   toilet:{count:4,locations:['덕주사','중간','영봉 인근']},
+   transport:{bus:'충주에서 버스',subway:'없음'},
+   top100:true,top100rank:98,wp:[[36.862,128.073],[36.867,128.077],[36.871,128.081]]},
+
+  {id:'naejang3',nm:'내장산',lat:35.4830,lng:126.8900,alt:763,color:'#e0804a',region:'전북',
+   course:'신선봉 코스',dist:'8.6km',time:'4.0h',diff:'초급',
+   tags:['숲길','꽃길','계곡'],lvMin:0,lvMax:2,distKm:8.6,timeMin:240,
+   access:3,crowd:5,scenic:5,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'1000대',info:'내장산국립공원 주차장'},
+   toilet:{count:6,locations:['내장사 입구','케이블카','신선봉']},
+   transport:{bus:'정읍에서 내장산 버스',subway:'없음'},
+   top100:true,top100rank:99,wp:[[35.475,126.884],[35.480,126.888],[35.484,126.892]]},
+
+  {id:'byeonsan2',nm:'변산',lat:35.6620,lng:126.5690,alt:508,color:'#70c8d0',region:'전북',
+   course:'관음봉 코스',dist:'7.6km',time:'3.5h',diff:'초급',
+   tags:['계곡','숲길'],lvMin:0,lvMax:2,distKm:7.6,timeMin:210,
+   access:2,crowd:2,scenic:4,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'내소사 주차장'},
+   toilet:{count:4,locations:['내소사 입구','직소폭포','관음봉']},
+   transport:{bus:'부안에서 버스',subway:'없음'},
+   top100:true,top100rank:100,wp:[[35.656,126.563],[35.661,126.567],[35.665,126.571]]}
 ];
 
 const COURSES=[
@@ -4580,14 +4900,16 @@ function logout(){
    1순위: 실제 날씨 API 연동
 ════════════════════════════════════ */
 async function fetchWeather(){
-  // 사용자 위치 기반 실시간 날씨 (Open-Meteo 무료 API)
-  let lat=37.5665, lng=126.9780; // 서울 기본값
+  let lat=37.5665, lng=126.9780;
   try{
     const pos = await new Promise((res,rej)=>
       navigator.geolocation?.getCurrentPosition(res, rej, {timeout:4000, maximumAge:300000})
     );
     lat=pos.coords.latitude; lng=pos.coords.longitude;
-  }catch(e){ /* 위치 거부 시 서울 기본값 사용 */ }
+    // 위치 저장 및 지도 텍스트 업데이트
+    window.__userLat=lat; window.__userLng=lng;
+    updateMapInfoByLocation(lat, lng);
+  }catch(e){ /* 위치 거부 시 기본값 */ }
 
   try{
     // 현재 날씨 + 3일 예보 + 일출일몰 한번에 요청
@@ -5641,19 +5963,31 @@ function calcMtScore(mt, cond){
   /* 5. 날씨 보정 (10점) */
   const windNum=parseFloat(wxData.wind)||6;
   const rainNum=parseInt(wxData.rain)||30;
-  if(windNum>=8)      score+=mt.windSafe*1.5; // 강풍이면 낮고 숲 많은 산 유리
+  if(windNum>=8)      score+=mt.windSafe*1.5;
   if(rainNum>=50)     score+=mt.windSafe*1.2;
   else                score+=10-(windNum*0.5);
 
   /* 6. 컨디션 보정 (10점) */
   const condVal=parseInt(cond.condScore)||70;
-  if(condVal>=80)      score+=10; // 컨디션 좋으면 모든 산 가능
+  if(condVal>=80)      score+=10;
   else if(condVal>=60) score+= (userLv<=mt.lvMax?8:3);
-  else                 score+= (mt.lvMax<=1?10:3); // 컨디션 나쁘면 쉬운 산만
+  else                 score+= (mt.lvMax<=1?10:3);
 
   /* 7. 동행 보정 (bonus) */
   if(cond.group==='👨‍👩‍👧 가족'&&mt.familyOk)  score+=8;
-  if(cond.group==='🧍 혼자')                  score+=3; // 혼자는 다 가능
+  if(cond.group==='🧍 혼자')                  score+=3;
+
+  /* 8. 위치 기반 거리 보정 (최대 20점) — 가까운 산 우선 추천 */
+  if(window.__userLat&&window.__userLng){
+    const dLat=mt.lat-window.__userLat;
+    const dLng=mt.lng-window.__userLng;
+    const distKm=Math.sqrt(dLat*dLat+dLng*dLng)*111;
+    if(distKm<=20)       score+=20;
+    else if(distKm<=50)  score+=15;
+    else if(distKm<=100) score+=8;
+    else if(distKm<=150) score+=4;
+    else                 score+=0;
+  }
 
   return Math.round(Math.min(score, 98));
 }
@@ -8000,6 +8334,62 @@ function filterMtByRegion(el, region){
 }
 
 /* 전체산 탭 HTML에 지역 필터 삽입 (최초 1회) */
+/* ════════════════════════════════════
+   지역 선택 시스템
+════════════════════════════════════ */
+const REGION_INFO={
+  seoul:       {name:'서울',  lat:37.5665,lng:126.9780,zoom:11, filter:m=>m.region&&m.region.includes('서울')},
+  gyeonggi:    {name:'경기',  lat:37.4138,lng:127.5183,zoom:10, filter:m=>m.region&&m.region.includes('경기')},
+  gangwon:     {name:'강원',  lat:37.8228,lng:128.1555,zoom:9,  filter:m=>m.region&&m.region.includes('강원')},
+  chungcheong: {name:'충청',  lat:36.6357,lng:127.4917,zoom:9,  filter:m=>(m.region&&(m.region.includes('충남')||m.region.includes('충북')||m.region.includes('대전')))||(m.city&&(m.city.includes('천안')||m.city.includes('아산')))},
+  gyeongsang:  {name:'경상',  lat:35.8714,lng:128.6014,zoom:9,  filter:m=>m.region&&(m.region.includes('경남')||m.region.includes('경북')||m.region.includes('부산')||m.region.includes('대구'))},
+  jeolla:      {name:'전라',  lat:35.1595,lng:126.8526,zoom:9,  filter:m=>m.region&&(m.region.includes('전남')||m.region.includes('전북')||m.region.includes('광주'))},
+  jeju:        {name:'제주',  lat:33.4996,lng:126.5312,zoom:10, filter:m=>m.region&&m.region.includes('제주')},
+};
+
+function selectMapRegion(key){
+  document.querySelectorAll('.rchip').forEach(c=>c.classList.remove('active'));
+  const chip=document.getElementById('rc-'+key);
+  if(chip) chip.classList.add('active');
+
+  if(key==='auto'){
+    if(window.__userLat&&window.__userLng){
+      updateMapInfoByLocation(window.__userLat,window.__userLng);
+      if(recMap) recMap.flyTo([window.__userLat,window.__userLng],11);
+    }
+    return;
+  }
+  const rd=REGION_INFO[key];
+  if(!rd) return;
+  if(recMap) recMap.flyTo([rd.lat,rd.lng],rd.zoom||10);
+  const filtered=rd.filter?MTS.filter(rd.filter):MTS;
+  const nameEl=document.getElementById('mic-name');
+  const subEl=document.getElementById('mic-sub');
+  if(nameEl) nameEl.textContent=rd.name+' 등산 지도';
+  if(subEl) subEl.textContent=filtered.length+'개 산 분포';
+}
+
+function updateMapInfoByLocation(lat,lng){
+  let regionName='전국';
+  if(lat>=37.4&&lat<=37.7&&lng>=126.7&&lng<=127.2) regionName='서울·근교';
+  else if(lat>=36.4&&lat<=37.1&&lng>=126.5&&lng<=127.8) regionName='충청';
+  else if(lat>=35.0&&lat<=35.4&&lng>=128.8&&lng<=129.3) regionName='부산·경남';
+  else if(lat>=35.7&&lat<=36.2&&lng>=128.3&&lng<=129.0) regionName='대구·경북';
+  else if(lat>=37.5&&lat<=38.5&&lng>=127.0&&lng<=129.5) regionName='강원';
+  else if(lat>=34.5&&lat<=35.5&&lng>=126.3&&lng<=127.5) regionName='전라';
+  else if(lat>=33.1&&lat<=33.6) regionName='제주';
+  else if(lat>=37.0&&lat<=37.8&&lng>=126.5&&lng<=127.8) regionName='경기';
+  const nearCount=MTS.filter(m=>{
+    const d=Math.sqrt(Math.pow(m.lat-lat,2)+Math.pow(m.lng-lng,2))*111;
+    return d<=80;
+  }).length;
+  const nameEl=document.getElementById('mic-name');
+  const subEl=document.getElementById('mic-sub');
+  if(nameEl) nameEl.textContent=regionName+' 등산 지도';
+  if(subEl) subEl.textContent=(nearCount||MTS.length)+'개 산 분포';
+  if(recMap) recMap.flyTo([lat,lng],11);
+}
+
 function initRegionFilters(){
   const target=document.getElementById('mt-grid');
   if(!target||document.getElementById('region-filter-wrap'))return;
