@@ -2036,7 +2036,7 @@ html{
       <div class="rsel-chip" id="rsel-jeju" onclick="selectRegion('jeju')" style="flex-shrink:0;">🍊 제주</div>
     </div>
     <div class="map-info-bar">
-      <div><div class="mic-name" id="mic-name">등산 지도</div><div class="mic-sub" id="mic-sub">위치 확인 중...</div></div>
+      <div><div class="mic-name" id="mic-name">전국 등산 지도</div><div class="mic-sub" id="mic-sub">58개 산 분포</div></div>
     </div>
   </div>
   <div class="bottom-sheet">
@@ -6940,22 +6940,53 @@ function selectRegion(regionKey){
 }
 
 function applyAutoRegion(){
-  const lat=window.__userLat||37.5665;
-  const lng=window.__userLng||126.9780;
-  const regionName=getRegionNameByCoord(lat,lng);
-  const rd=getRegionDataByCoord(lat,lng);
+  const lat=window.__userLat;
+  const lng=window.__userLng;
 
-  updateMapRegion({center:[lat,lng], zoom:11});
+  // 위치가 이미 있으면 바로 적용
+  if(lat&&lng){
+    _applyRegionByLatLng(lat,lng);
+    return;
+  }
 
+  // 위치 없으면 기본값 즉시 표시 (3초 후 업데이트)
   const nameEl=document.getElementById('mic-name');
   const subEl=document.getElementById('mic-sub');
-  // 내 위치 기준 50km 이내 산들
+  if(nameEl) nameEl.textContent='전국 등산 지도';
+  if(subEl) subEl.textContent=MTS.length+'개 산 분포';
+
+  // 3초 안에 위치 못 받으면 기본값 유지
+  const timeout=setTimeout(()=>{
+    if(!window.__userLat){
+      if(nameEl) nameEl.textContent='전국 등산 지도';
+      if(subEl) subEl.textContent=MTS.length+'개 산 분포';
+    }
+  },3000);
+
+  // 위치 받으면 업데이트
+  navigator.geolocation?.getCurrentPosition(
+    pos=>{
+      clearTimeout(timeout);
+      const lt=pos.coords.latitude, ln=pos.coords.longitude;
+      window.__userLat=lt; window.__userLng=ln;
+      _applyRegionByLatLng(lt,ln);
+    },
+    ()=>{ clearTimeout(timeout); }, // 거부시 기본값 유지
+    {timeout:3000, maximumAge:300000}
+  );
+}
+
+function _applyRegionByLatLng(lat,lng){
+  const regionName=getRegionNameByCoord(lat,lng);
+  updateMapRegion({center:[lat,lng], zoom:11});
   const nearMts=MTS.filter(m=>{
     const d=Math.sqrt(Math.pow(m.lat-lat,2)+Math.pow(m.lng-lng,2))*111;
     return d<=80;
   });
+  const nameEl=document.getElementById('mic-name');
+  const subEl=document.getElementById('mic-sub');
   if(nameEl) nameEl.textContent=regionName+' 등산 지도';
-  if(subEl) subEl.textContent=nearMts.length+'개 산 분포';
+  if(subEl) subEl.textContent=(nearMts.length||MTS.length)+'개 산 분포';
 }
 
 function getRegionNameByCoord(lat,lng){
