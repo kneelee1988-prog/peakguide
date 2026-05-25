@@ -5790,27 +5790,11 @@ function updateRecMapMarkers(top5){
 
 /* MT 기반 AI 코멘트 */
 async function getAICommentForMt(mt, rank){
-  if(!settings.aiComment) return buildDefaultComment(mt, rank);
   const cacheKey=mt.id+'_'+rank;
   if(aiCommentCache[cacheKey]) return aiCommentCache[cacheKey];
-  try{
-    const cond=getConditions();
-    const prompt=`등산 앱 PeakGuide의 AI 가이드예요. 아래 조건에 맞게 등산 코스 추천 코멘트를 2~3문장으로 작성해주세요. 반드시 한국어로, 친근하고 간결하게 써주세요.
-
-코스: ${mt.nm} ${mt.course}
-거리/고도: ${mt.distKm}km · ${mt.alt}m
-코스 특성: ${mt.tags.join(', ')}
-오늘 날씨: 기온 ${wxData.temp}, 풍속 ${wxData.wind}, 강수확률 ${wxData.rain}
-사용자 컨디션: ${cond.condScore}/100
-경험 수준: ${cond.level}
-우선순위: ${cond.priority}
-매칭도: ${mt.score}%`;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})});
-    const data=await res.json();
-    const comment=data.content?.[0]?.text||buildDefaultComment(mt,rank);
-    aiCommentCache[cacheKey]=comment;
-    return comment;
-  }catch(e){ return buildDefaultComment(mt,rank); }
+  const comment=buildDefaultComment(mt, rank);
+  aiCommentCache[cacheKey]=comment;
+  return comment;
 }
 
 function buildDefaultComment(mt, rank){
@@ -6882,16 +6866,16 @@ function sendTogetherInvite(){
 }
 
 function initRecMap(){
-  recMap=L.map('map-rec',{center:[37.565,127.010],zoom:11,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.88}).addTo(recMap);
-  watchTileLoad(recMap,'map-rec-offline','map-rec');
-  fixIOSLeaflet(recMap);
-  MTS.forEach(mt=>{
-    const sz=20,em='⛰';
-    const ico=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#4a8860;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.35);">${em}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
-    const pop=`<div class="pop-inner"><div class="pop-name">${mt.nm} ${mt.alt}m</div><div class="pop-info">${mt.course}<br>${mt.dist} · ${mt.time} · ${mt.diff}</div></div>`;
-    const mk=L.marker([mt.lat,mt.lng],{icon:ico}).addTo(recMap).bindPopup(pop,{maxWidth:200,closeButton:false});
-    mkrs[mt.id]=mk;
+  whenKakaoReady(function(){
+    recMap=L.map('map-rec',{center:[37.565,127.010],zoom:11,zoomControl:false,attributionControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.88}).addTo(recMap);
+    MTS.forEach(mt=>{
+      const sz=20,em='⛰';
+      const ico=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#4a8860;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.35);">${em}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const pop=`<div class="pop-inner"><div class="pop-name">${mt.nm} ${mt.alt}m</div><div class="pop-info">${mt.course||''}<br>${mt.distKm}km · ${mt.diff}</div></div>`;
+      const mk=L.marker([mt.lat,mt.lng],{icon:ico}).addTo(recMap).bindPopup(pop,{maxWidth:200,closeButton:false});
+      mkrs[mt.id]=mk;
+    });
   });
 }
 
