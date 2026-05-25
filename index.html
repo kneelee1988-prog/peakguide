@@ -4908,13 +4908,15 @@ async function fetchWeather(){
       navigator.geolocation?.getCurrentPosition(res, rej, {timeout:4000, maximumAge:300000})
     );
     lat=pos.coords.latitude; lng=pos.coords.longitude;
-    // 위치 저장 및 지도 텍스트 업데이트
     window.__userLat=lat; window.__userLng=lng;
     updateMapInfoByLocation(lat, lng);
-  }catch(e){ /* 위치 거부 시 기본값 */ }
+  }catch(e){}
+  await fetchWeatherByLatLng(lat, lng);
+}
 
+/* 특정 좌표 날씨 가져오기 (지역 선택 시 호출) */
+async function fetchWeatherByLatLng(lat, lng){
   try{
-    // 현재 날씨 + 3일 예보 + 일출일몰 한번에 요청
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,wind_speed_10m,precipitation_probability,weathercode,visibility&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=Asia%2FSeoul&forecast_days=3`;
     const res=await fetch(url, {signal: AbortSignal.timeout?.(5000)});
     if(!res.ok) throw new Error('API 오류');
@@ -4932,9 +4934,7 @@ async function fetchWeather(){
       ico:wxIco, desc:wxDesc,
     };
     updateWeatherUI();
-    // 3일 예보 렌더링
     if(data.daily) renderForecast(data.daily);
-    // 일출·일몰 렌더링
     if(data.daily?.sunrise?.[0]) renderSunriseSunset(data.daily.sunrise[0], data.daily.sunset[0]);
   }catch(e){
     wxData={temp:'--',feels:'--',wind:'--m/s',rain:'--%',vis:'--',ico:'🌤️',desc:'날씨 정보 없음'};
@@ -6089,17 +6089,18 @@ function buildTop5(condOverride){
   const cond=condOverride||getConditions();
   const region=window.__selectedRegion||'auto';
 
-  // 지역 필터 적용
   let pool=MTS;
+
   if(region!=='auto'){
+    // 특정 지역 선택 시 해당 지역 산만 추천
     const rd=REGION_INFO[region];
     if(rd&&rd.filter){
       const filtered=MTS.filter(rd.filter);
-      // 해당 지역 산이 5개 이상이면 그 지역만, 아니면 전체에서 추천
       if(filtered.length>=3) pool=filtered;
+      else if(filtered.length>0) pool=filtered; // 적어도 있는 것만
     }
   } else if(window.__userLat&&window.__userLng){
-    // 내 위치 기준 150km 이내 산 우선 (없으면 전체)
+    // 내 위치 기준 150km 이내
     const near=MTS.filter(m=>{
       const d=Math.sqrt(Math.pow(m.lat-window.__userLat,2)+Math.pow(m.lng-window.__userLng,2))*111;
       return d<=150;
@@ -6107,7 +6108,15 @@ function buildTop5(condOverride){
     if(near.length>=5) pool=near;
   }
 
-  const scored=pool.map(mt=>({...mt,score:calcMtScore(mt,cond)}));
+  // 중복 제거 (id 기준)
+  const seen=new Set();
+  const unique=pool.filter(m=>{
+    if(seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+
+  const scored=unique.map(mt=>({...mt,score:calcMtScore(mt,cond)}));
   scored.sort((a,b)=>b.score-a.score);
   return scored.slice(0,5);
 }
@@ -8483,18 +8492,16 @@ function selectMapRegion(key){
   const chip=document.getElementById('rc-'+key);
   if(chip) chip.classList.add('active');
 
-  // 현재 선택된 지역 저장
   window.__selectedRegion=key;
 
   if(key==='auto'){
-    // 내 위치 기반
     if(window.__userLat&&window.__userLng){
       updateMapInfoByLocation(window.__userLat,window.__userLng);
       if(recMap) recMap.flyTo([window.__userLat,window.__userLng],11);
+      // 내 위치 날씨로 복원
+      fetchWeatherByLatLng(window.__userLat,window.__userLng);
     }
-    // 추천탭에 있으면 추천 갱신
-    const recTab=document.getElementById('rp-rec');
-    if(recTab&&recTab.style.display!=='none') renderRecCards(null);
+    showToast('📍 내 위치 기준으로 변경됐어요');
     return;
   }
 
@@ -8511,18 +8518,17 @@ function selectMapRegion(key){
   if(nameEl) nameEl.textContent=rd.name+' 등산 지도';
   if(subEl) subEl.textContent=filtered.length+'개 산 분포';
 
-  // 추천탭에 있으면 해당 지역 추천 갱신
-  const recPanel=document.getElementById('rp-rec');
-  if(recPanel&&recPanel.style.display!=='none') renderRecCards(null);
+  // 해당 지역 날씨로 변경
+  fetchWeatherByLatLng(rd.lat,rd.lng);
 
-  // 검색탭도 갱신
+  // 검색탭 갱신
   renderSearchResults();
 
-  // 전체산 탭도 갱신
+  // 전체산 탭 갱신
   const mtsPanel=document.getElementById('rp-mts');
-  if(mtsPanel&&mtsPanel.style.display!=='none') renderMtList(key==='auto'?null:key);
+  if(mtsPanel&&mtsPanel.style.display!=='none') renderMtList(key);
 
-  showToast(`🗺️ ${key==='auto'?'내 위치':rd.name} 지역으로 변경됐어요`);
+  showToast(`🗺️ ${rd.name} 지역으로 변경됐어요`);
 }
 
 function updateMapInfoByLocation(lat,lng){
