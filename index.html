@@ -678,6 +678,8 @@ body{
 .rchip.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(67,196,122,.4);}
 .rchip:active{transform:scale(.95);}
 #region-bar::-webkit-scrollbar{display:none;}
+.sort-btn{flex-shrink:0;padding:6px 12px;border-radius:16px;font-size:11px;font-weight:700;color:var(--text3);background:var(--g50);border:1.5px solid var(--borderr);cursor:pointer;white-space:nowrap;transition:all .18s;}
+.sort-btn.active{background:var(--g700);color:#fff;border-color:var(--g700);}
 
 /* 날씨 위젯 */
 .wx-row{display:flex;gap:6px;}
@@ -2316,6 +2318,14 @@ html{
       </div>
       <!-- 전체 산 -->
       <div id="rp-mts" style="display:none">
+        <!-- 정렬 버튼 -->
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;">
+          <button class="sort-btn active" id="sort-dist" onclick="setSortMt('dist',this)">📍 거리순</button>
+          <button class="sort-btn" id="sort-pop" onclick="setSortMt('pop',this)">🔥 인기순</button>
+          <button class="sort-btn" id="sort-easy" onclick="setSortMt('easy',this)">🌱 쉬운순</button>
+          <button class="sort-btn" id="sort-alt" onclick="setSortMt('alt',this)">▲ 고도순</button>
+          <button class="sort-btn" id="sort-name" onclick="setSortMt('name',this)">가나다</button>
+        </div>
         <div id="mt-grid-container"></div>
         <div style="margin-top:11px;padding:9px 11px;background:var(--g50);border-radius:10px;border:1px solid var(--borderr);font-size:10px;color:var(--text4);line-height:1.6">🟢 진한 초록 = AI 추천 코스 포함 산</div>
       </div>
@@ -2756,7 +2766,7 @@ html{
 ──────────────────────────────────── */
 const MTS=[
   {id:'bukhan',   nm:'북한산',   lat:37.6585,lng:126.9780,alt:836, color:'#f5d060',
-   region:'서울/경기',
+   region:'서울',
    course:'둘레길 7코스', dist:'6.4km',time:'2.5h',diff:'초~중급',
    courses:[
      {name:'둘레길 7코스',dist:'6.4km',time:'2.5h',diff:'초급',diffLv:1,desc:'숲길 위주, 도심 조망 3곳. 가족 추천'},
@@ -2773,7 +2783,7 @@ const MTS=[
    wp:[[37.649,126.960],[37.651,126.963],[37.654,126.968],[37.656,126.972],[37.658,126.976],[37.660,126.980],[37.663,126.984],[37.665,126.988]]},
 
   {id:'cheonggye',nm:'청계산',   lat:37.4280,lng:127.0560,alt:618, color:'#5bc47a',
-   region:'서울/경기',
+   region:'서울',
    course:'매봉 코스',  dist:'5.8km',time:'2.0h',diff:'초급',
    courses:[
      {name:'매봉 코스',dist:'5.8km',time:'2.0h',diff:'초급',diffLv:1,desc:'원터골에서 매봉까지 기본 코스'},
@@ -2806,7 +2816,7 @@ const MTS=[
    wp:[[37.433,126.958],[37.437,126.960],[37.441,126.962],[37.445,126.964],[37.448,126.967],[37.451,126.970]]},
 
   {id:'dobong',   nm:'도봉산',   lat:37.7030,lng:127.0200,alt:740, color:'#4a9ed4',
-   region:'서울/경기',
+   region:'서울',
    course:'포대능선 코스',dist:'7.4km',time:'3.3h',diff:'중급',
    courses:[
      {name:'포대능선 코스',dist:'7.4km',time:'3.3h',diff:'중급',diffLv:2,desc:'도봉산 대표 암릉 코스. 포대능선 절경'},
@@ -3485,7 +3495,7 @@ const MTS=[
    transport:{bus:'삼척에서 버스',subway:'없음'},
    top100:true,top100rank:65,wp:[[37.173,129.063],[37.178,129.068],[37.183,129.073]]},
 
-  {id:'myeongseong',nm:'명성산',  lat:38.0900,lng:127.3400,alt:923, color:'#b0a8d0',region:'경기/강원',
+  {id:'myeongseong',nm:'명성산',  lat:38.0900,lng:127.3400,alt:923, color:'#b0a8d0',region:'경기',
    course:'정상 코스',dist:'8.0km',time:'3.5h',diff:'초급',
    tags:['숲길','꽃길'],lvMin:0,lvMax:2,distKm:8.0,timeMin:210,
    access:2,crowd:3,scenic:4,exercise:3,windSafe:3,familyOk:true,
@@ -3807,7 +3817,169 @@ const MTS=[
    top100:false,
    wp:[[36.708,126.868],[36.709,126.871],[36.711,126.873],[36.713,126.875],[36.715,126.877],[36.716,126.878]]},
 
-  /* ══════════════════ 100대 명산 추가분 (53~100위) ══════════════════ */
+  /* ══════════════════ 서울·경기 추가 산 ══════════════════ */
+  {id:'bukhansan2',nm:'삼각산(북한산)',lat:37.6585,lng:126.9780,alt:836,color:'#f0c840',region:'서울',
+   course:'인수봉 코스',dist:'7.2km',time:'3.5h',diff:'중급',
+   tags:['암릉','도심뷰','역사'],lvMin:1,lvMax:3,distKm:7.2,timeMin:210,
+   access:4,crowd:5,scenic:5,exercise:5,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'1시간 무료',capacity:'800대',info:'북한산성 주차장'},
+   toilet:{count:6,locations:['탐방안내소','솔고개','정상 인근']},
+   transport:{bus:'704번',subway:'3호선 구파발역 도보 20분'},
+   top100:true,top100rank:7,wp:[[37.649,126.960],[37.655,126.968],[37.660,126.978],[37.665,126.986]]},
+
+  {id:'gwanaksan2',nm:'관악산(서울대)',lat:37.4446,lng:126.9640,alt:629,color:'#e8a050',region:'서울',
+   course:'서울대 코스',dist:'6.4km',time:'2.8h',diff:'초~중급',
+   tags:['암릉','도심뷰'],lvMin:1,lvMax:2,distKm:6.4,timeMin:168,
+   access:4,crowd:4,scenic:4,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'300대',info:'서울대입구 주차장'},
+   toilet:{count:4,locations:['서울대','연주암','정상']},
+   transport:{bus:'관악02번',subway:'2호선 서울대입구역 도보 20분'},
+   top100:true,top100rank:9,wp:[[37.451,126.951],[37.447,126.958],[37.444,126.965]]},
+
+  {id:'achasan2',nm:'아차산·용마산',lat:37.5680,lng:127.1050,alt:348,color:'#f0c060',region:'서울',
+   course:'아차산~용마산 연계',dist:'7.0km',time:'2.5h',diff:'초급',
+   tags:['숲길','도심뷰','역사'],lvMin:0,lvMax:2,distKm:7.0,timeMin:150,
+   access:5,crowd:4,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'아차산 주차장'},
+   toilet:{count:4,locations:['입구','중간','용마산']},
+   transport:{bus:'2호선 연결',subway:'5호선 아차산역 도보 5분'},
+   top100:false,wp:[[37.562,127.098],[37.566,127.103],[37.568,127.108]]},
+
+  {id:'bukaksan',nm:'북악산(백악산)',lat:37.5950,lng:126.9800,alt:342,color:'#d0b060',region:'서울',
+   course:'창의문 코스',dist:'4.8km',time:'2.0h',diff:'초급',
+   tags:['숲길','역사','도심뷰'],lvMin:0,lvMax:2,distKm:4.8,timeMin:120,
+   access:4,crowd:2,scenic:4,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:false,fee:'-',capacity:'-',info:'대중교통 이용 권장'},
+   toilet:{count:3,locations:['창의문','탐방로','팔각정']},
+   transport:{bus:'7022번',subway:'3호선 경복궁역 도보 15분'},
+   top100:false,wp:[[37.590,126.973],[37.593,126.979],[37.596,126.983]]},
+
+  {id:'bulam2',nm:'불암산(북서릉)',lat:37.6560,lng:127.1060,alt:508,color:'#b0c860',region:'서울',
+   course:'북서릉 코스',dist:'5.2km',time:'2.2h',diff:'초~중급',
+   tags:['암릉','도심뷰'],lvMin:1,lvMax:2,distKm:5.2,timeMin:132,
+   access:4,crowd:3,scenic:3,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'불암산 주차장'},
+   toilet:{count:3,locations:['입구','중간','정상']},
+   transport:{bus:'1155번',subway:'7호선 태릉입구역 도보 25분'},
+   top100:false,wp:[[37.650,127.099],[37.654,127.104],[37.657,127.108]]},
+
+  {id:'suraksan2',nm:'수락산(주능선)',lat:37.6820,lng:127.0760,alt:638,color:'#68d4a0',region:'서울',
+   course:'주능선 코스',dist:'6.8km',time:'3.0h',diff:'초~중급',
+   tags:['암릉','계곡'],lvMin:1,lvMax:2,distKm:6.8,timeMin:180,
+   access:4,crowd:3,scenic:4,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'수락산 주차장'},
+   toilet:{count:4,locations:['입구','내원암','정상']},
+   transport:{bus:'수락산 버스',subway:'7호선 수락산역 도보 10분'},
+   top100:false,wp:[[37.676,127.068],[37.680,127.073],[37.683,127.078]]},
+
+  {id:'cheongyesan2',nm:'청계산(옥녀봉)',lat:37.4280,lng:127.0560,alt:618,color:'#5bc47a',region:'서울',
+   course:'옥녀봉 전망 코스',dist:'7.2km',time:'2.8h',diff:'초급',
+   tags:['숲길','도심뷰'],lvMin:0,lvMax:2,distKm:7.2,timeMin:168,
+   access:4,crowd:4,scenic:4,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'300대',info:'원터골 주차장'},
+   toilet:{count:4,locations:['원터골','중간','정상']},
+   transport:{bus:'청계산입구역',subway:'신분당선 청계산입구역 도보 15분'},
+   top100:false,wp:[[37.424,127.049],[37.427,127.054],[37.430,127.060]]},
+
+  {id:'daemosan2',nm:'대모산·구룡산',lat:37.4720,lng:127.0680,alt:293,color:'#80d8a0',region:'서울',
+   course:'대모~구룡 연계',dist:'5.6km',time:'2.0h',diff:'초급',
+   tags:['숲길','도심뷰'],lvMin:0,lvMax:1,distKm:5.6,timeMin:120,
+   access:5,crowd:3,scenic:3,exercise:2,windSafe:5,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'대모산 주차장'},
+   toilet:{count:3,locations:['입구','중간','구룡산']},
+   transport:{bus:'3호선',subway:'3호선 대청역 도보 15분'},
+   top100:false,wp:[[37.470,127.062],[37.472,127.067],[37.475,127.072]]},
+
+  {id:'gwanaksan3',nm:'삼성산',lat:37.4520,lng:126.9420,alt:481,color:'#c0a8e0',region:'서울',
+   course:'삼성산 코스',dist:'5.4km',time:'2.2h',diff:'초급',
+   tags:['숲길','역사'],lvMin:0,lvMax:2,distKm:5.4,timeMin:132,
+   access:4,crowd:2,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'삼막사 주차장'},
+   toilet:{count:3,locations:['삼막사','중간','정상']},
+   transport:{bus:'시흥6번',subway:'1호선 석수역 버스 환승'},
+   top100:false,wp:[[37.448,126.935],[37.451,126.940],[37.454,126.945]]},
+
+  /* ══════ 경기 추가 산 ══════ */
+  {id:'yongmunsan',nm:'용문산',lat:37.5580,lng:127.6020,alt:1157,color:'#a8c870',region:'경기',
+   course:'용문사 코스',dist:'9.8km',time:'4.5h',diff:'초~중급',
+   tags:['숲길','역사','계곡'],lvMin:1,lvMax:2,distKm:9.8,timeMin:270,
+   access:2,crowd:3,scenic:4,exercise:4,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'승용차 2,000원',capacity:'400대',info:'용문사 주차장'},
+   toilet:{count:4,locations:['용문사','중간','정상']},
+   transport:{bus:'경의중앙선',subway:'경의중앙선 용문역 버스 환승'},
+   top100:true,top100rank:20,wp:[[37.550,127.595],[37.555,127.600],[37.560,127.605]]},
+
+  {id:'myeongjisan',nm:'명지산',lat:37.9040,lng:127.3680,alt:1267,color:'#98c0a0',region:'경기',
+   course:'정상 코스',dist:'10.2km',time:'5.0h',diff:'중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:3,distKm:10.2,timeMin:300,
+   access:2,crowd:1,scenic:4,exercise:4,windSafe:2,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'150대',info:'익근리 주차장'},
+   toilet:{count:2,locations:['익근리','정상']},
+   transport:{bus:'가평에서 버스',subway:'없음'},
+   top100:true,top100rank:26,wp:[[37.897,127.361],[37.901,127.367],[37.905,127.373]]},
+
+  {id:'hwayasan',nm:'화야산',lat:37.7500,lng:127.5200,alt:755,color:'#b0d090',region:'경기',
+   course:'정상 코스',dist:'7.4km',time:'3.2h',diff:'초급',
+   tags:['숲길','계곡'],lvMin:0,lvMax:2,distKm:7.4,timeMin:192,
+   access:2,crowd:1,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'화야산 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'가평에서 버스',subway:'없음'},
+   top100:false,wp:[[37.743,127.513],[37.748,127.519],[37.752,127.524]]},
+
+  {id:'cheonmasan',nm:'천마산',lat:37.6230,lng:127.4160,alt:812,color:'#a0c8b0',region:'경기',
+   course:'천마산 코스',dist:'7.6km',time:'3.5h',diff:'초급',
+   tags:['숲길','계곡'],lvMin:0,lvMax:2,distKm:7.6,timeMin:210,
+   access:3,crowd:2,scenic:3,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'천마산역 주차장'},
+   toilet:{count:3,locations:['천마산역','중간','정상']},
+   transport:{bus:'경의중앙선',subway:'경의중앙선 천마산역 도보 20분'},
+   top100:false,wp:[[37.617,127.409],[37.621,127.415],[37.625,127.421]]},
+
+  {id:'surisanKG',nm:'수리산',lat:37.3530,lng:126.8880,alt:489,color:'#90d090',region:'경기',
+   course:'태을봉 코스',dist:'6.2km',time:'2.5h',diff:'초급',
+   tags:['숲길','도심뷰'],lvMin:0,lvMax:2,distKm:6.2,timeMin:150,
+   access:4,crowd:3,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'수리산도립공원 주차장'},
+   toilet:{count:3,locations:['입구','중간','태을봉']},
+   transport:{bus:'4호선',subway:'4호선 대야미역 도보 20분'},
+   top100:false,wp:[[37.348,126.881],[37.351,126.886],[37.355,126.891]]},
+
+  {id:'yanggeumsan',nm:'양자산',lat:37.3450,lng:127.3650,alt:709,color:'#b8c8a0',region:'경기',
+   course:'정상 코스',dist:'7.0km',time:'3.0h',diff:'초급',
+   tags:['숲길','계곡'],lvMin:0,lvMax:2,distKm:7.0,timeMin:180,
+   access:2,crowd:1,scenic:3,exercise:3,windSafe:4,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'용인 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'용인에서 버스',subway:'없음'},
+   top100:false,wp:[[37.338,127.358],[37.343,127.364],[37.348,127.370]]},
+
+  {id:'goryeosan',nm:'고려산',lat:37.6880,lng:126.4620,alt:436,color:'#d0c080',region:'경기',
+   course:'낙조봉 코스',dist:'5.8km',time:'2.5h',diff:'초급',
+   tags:['꽃길','도심뷰'],lvMin:0,lvMax:2,distKm:5.8,timeMin:150,
+   access:2,crowd:3,scenic:4,exercise:3,windSafe:3,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'고려산 주차장'},
+   toilet:{count:3,locations:['입구','적석사','낙조봉']},
+   transport:{bus:'강화도 버스',subway:'없음 (인천 강화)'},
+   top100:false,wp:[[37.682,126.455],[37.686,126.460],[37.690,126.466]]},
+
+  {id:'baekunsan2',nm:'백운산(포천)',lat:37.9680,lng:127.1850,alt:904,color:'#88b8a8',region:'경기',
+   course:'정상 코스',dist:'8.0km',time:'3.8h',diff:'초~중급',
+   tags:['숲길','계곡'],lvMin:1,lvMax:2,distKm:8.0,timeMin:228,
+   access:2,crowd:1,scenic:3,exercise:4,windSafe:3,familyOk:false,
+   parking:{available:true,fee:'무료',capacity:'100대',info:'백운산 주차장'},
+   toilet:{count:2,locations:['입구','정상']},
+   transport:{bus:'포천에서 버스',subway:'없음'},
+   top100:false,wp:[[37.961,127.178],[37.966,127.184],[37.970,127.190]]},
+
+  {id:'cheonseongsan',nm:'천성산(경기)',lat:37.2580,lng:127.0980,alt:217,color:'#c0d8a0',region:'경기',
+   course:'수원 팔달산 코스',dist:'3.8km',time:'1.5h',diff:'입문',
+   tags:['숲길','도심뷰','역사'],lvMin:0,lvMax:1,distKm:3.8,timeMin:90,
+   access:5,crowd:3,scenic:3,exercise:2,windSafe:5,familyOk:true,
+   parking:{available:true,fee:'무료',capacity:'200대',info:'팔달산 주차장'},
+   toilet:{count:4,locations:['화성행궁','중간','정상']},
+   transport:{bus:'수원 시내버스',subway:'1호선 수원역 버스 환승'},
+   top100:false,wp:[[37.253,127.091],[37.256,127.096],[37.260,127.101]]},
   {id:'cheonseong2',nm:'천성산',lat:35.4700,lng:129.0800,alt:922,color:'#78b8a0',region:'경남',
    course:'원효봉 코스',dist:'8.0km',time:'3.8h',diff:'초급',
    tags:['숲길','계곡'],lvMin:0,lvMax:2,distKm:8.0,timeMin:228,
@@ -3898,7 +4070,7 @@ const MTS=[
    transport:{bus:'삼척에서 버스',subway:'없음'},
    top100:true,top100rank:67,wp:[[37.173,129.063],[37.178,129.068],[37.183,129.073]]},
 
-  {id:'myeongseong',nm:'명성산',lat:38.0900,lng:127.3400,alt:923,color:'#b0a8d0',region:'경기/강원',
+  {id:'myeongseong',nm:'명성산',lat:38.0900,lng:127.3400,alt:923,color:'#b0a8d0',region:'경기',
    course:'정상 코스',dist:'8.0km',time:'3.5h',diff:'초급',
    tags:['숲길','꽃길'],lvMin:0,lvMax:2,distKm:8.0,timeMin:210,
    access:2,crowd:3,scenic:4,exercise:3,windSafe:3,familyOk:true,
@@ -8430,7 +8602,7 @@ function renderMtList(filterRegion){
   const toRender=selected?groups.filter(g=>g.key===selected||g.label.includes(selected)):groups;
 
   toRender.forEach(group=>{
-    const mts=group.getMts();
+    const mts=sortMts(group.getMts());
     if(!mts.length) return;
 
     // 섹션 헤더
@@ -8550,6 +8722,35 @@ function updateMapInfoByLocation(lat,lng){
   if(nameEl) nameEl.textContent=regionName+' 등산 지도';
   if(subEl) subEl.textContent=(nearCount||MTS.length)+'개 산 분포';
   if(recMap) recMap.flyTo([lat,lng],11);
+}
+
+let currentMtSort='dist'; // 기본 정렬: 거리순
+
+function setSortMt(sort, el){
+  currentMtSort=sort;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderMtList(window.__selectedRegion&&window.__selectedRegion!=='auto'?window.__selectedRegion:null);
+}
+
+function sortMts(mts){
+  const sorted=[...mts];
+  switch(currentMtSort){
+    case 'dist':
+      if(window.__userLat&&window.__userLng){
+        sorted.sort((a,b)=>{
+          const da=Math.sqrt(Math.pow(a.lat-window.__userLat,2)+Math.pow(a.lng-window.__userLng,2));
+          const db=Math.sqrt(Math.pow(b.lat-window.__userLat,2)+Math.pow(b.lng-window.__userLng,2));
+          return da-db;
+        });
+      }
+      break;
+    case 'pop':  sorted.sort((a,b)=>(b.crowd||0)-(a.crowd||0)); break;
+    case 'easy': sorted.sort((a,b)=>(a.lvMin||0)-(b.lvMin||0)); break;
+    case 'alt':  sorted.sort((a,b)=>a.alt-b.alt); break;
+    case 'name': sorted.sort((a,b)=>a.nm.localeCompare(b.nm,'ko')); break;
+  }
+  return sorted;
 }
 
 function initRegionFilters(){
