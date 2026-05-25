@@ -121,35 +121,50 @@ window.onerror = function(msg, src, line, col, err){
   }, 200);
   return false;
 };
-/* ═══════════════════════════════════════════
-   카카오맵 SDK 래퍼 (Leaflet 호환 API)
-═══════════════════════════════════════════ */
-// 카카오맵 SDK 비동기 로드 (앱 로딩 블로킹 방지)
+// 지도 라이브러리 더미 (카카오맵 연동 전)
+var L={
+  map:function(id){
+    var c=typeof id==='string'?document.getElementById(id):id;
+    if(c) c.style.background='#1a3020';
+    return {
+      on:function(){return this;},
+      fire:function(){return this;},
+      invalidateSize:function(){return this;},
+      setView:function(){return this;},
+      flyTo:function(){return this;},
+      panTo:function(){return this;},
+      fitBounds:function(){return this;},
+      getZoom:function(){return 11;},
+      remove:function(){},
+      _kakaoMap:null,
+      _markers:[],
+      _polylines:[],
+      scrollWheelZoom:{disable:function(){}}
+    };
+  },
+  tileLayer:function(){return {addTo:function(){return this;},remove:function(){}};},
+  marker:function(){return {addTo:function(){return this;},bindPopup:function(){return this;},openPopup:function(){return this;},setMap:function(){}};},
+  polyline:function(){return {addTo:function(){return this;}};},
+  divIcon:function(o){return {options:o||{}};},
+  latLng:function(a,b){return {lat:a,lng:b};},
+  latLngBounds:function(lls){
+    if(!lls||!lls.length) return {pad:function(){return this;},_sw:{lat:37,lng:127},_ne:{lat:38,lng:128}};
+    var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
+    lls.forEach(function(ll){
+      var lat=Array.isArray(ll)?ll[0]:ll.lat;
+      var lng=Array.isArray(ll)?ll[1]:ll.lng;
+      minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);
+      minLng=Math.min(minLng,lng);maxLng=Math.max(maxLng,lng);
+    });
+    return {_sw:{lat:minLat,lng:minLng},_ne:{lat:maxLat,lng:maxLng},pad:function(){return this;}};
+  }
+};
+window.L=L;
+
+// 카카오맵 SDK - 추후 연동 예정
 window.__kakaoMapReady=false;
 window.__mapInitQueue=[];
-
-function whenKakaoReady(fn){
-  if(window.__kakaoMapReady){ fn(); }
-  else{ window.__mapInitQueue.push(fn); }
-}
-
-// 카카오맵 SDK는 페이지 완전 로딩 후 로드 (앱 초기화 블로킹 안함)
-window.addEventListener('load',function(){
-  setTimeout(function(){
-    var script=document.createElement('script');
-    script.src='//dapi.kakao.com/v2/maps/sdk.js?appkey=c3cf59677aa54c92bed73d00e26cf68d&autoload=false';
-    script.async=true;
-    script.onload=function(){
-      kakao.maps.load(function(){
-        window.__kakaoMapReady=true;
-        window.__mapInitQueue.forEach(function(fn){try{fn();}catch(e){}});
-        window.__mapInitQueue=[];
-      });
-    };
-    script.onerror=function(){ console.warn('카카오맵 SDK 로드 실패'); };
-    document.head.appendChild(script);
-  }, 100);
-});
+function whenKakaoReady(fn){ /* 지도 비활성화 중 */ }
 
 // Leaflet 호환 L 객체 (카카오맵 기반)
 var L={
