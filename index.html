@@ -133,23 +133,22 @@ function whenKakaoReady(fn){
   else{ window.__mapInitQueue.push(fn); }
 }
 
-// DOMContentLoaded 후 SDK 로드 (앱 초기화 블로킹 안함)
-document.addEventListener('DOMContentLoaded',function(){
-  var script=document.createElement('script');
-  script.src='//dapi.kakao.com/v2/maps/sdk.js?appkey=c3cf59677aa54c92bed73d00e26cf68d&autoload=false';
-  script.async=true;
-  script.defer=true;
-  script.onload=function(){
-    kakao.maps.load(function(){
-      window.__kakaoMapReady=true;
-      window.__mapInitQueue.forEach(function(fn){try{fn();}catch(e){}});
-      window.__mapInitQueue=[];
-    });
-  };
-  script.onerror=function(){
-    console.warn('카카오맵 SDK 로드 실패');
-  };
-  document.head.appendChild(script);
+// 카카오맵 SDK는 페이지 완전 로딩 후 로드 (앱 초기화 블로킹 안함)
+window.addEventListener('load',function(){
+  setTimeout(function(){
+    var script=document.createElement('script');
+    script.src='//dapi.kakao.com/v2/maps/sdk.js?appkey=c3cf59677aa54c92bed73d00e26cf68d&autoload=false';
+    script.async=true;
+    script.onload=function(){
+      kakao.maps.load(function(){
+        window.__kakaoMapReady=true;
+        window.__mapInitQueue.forEach(function(fn){try{fn();}catch(e){}});
+        window.__mapInitQueue=[];
+      });
+    };
+    script.onerror=function(){ console.warn('카카오맵 SDK 로드 실패'); };
+    document.head.appendChild(script);
+  }, 100);
 });
 
 // Leaflet 호환 L 객체 (카카오맵 기반)
@@ -4088,7 +4087,7 @@ function goTo(id){
   currentScreen = id;
 
   if(id==='s-login'){setTimeout(()=>{const sc=document.querySelector('.login-scroll');if(sc)sc.scrollTop=sc.scrollHeight; renderUserCount();},50);}
-  if(id==='s-recommend'&&!recMap) setTimeout(initRecMap,150);
+  if(id==='s-recommend'&&!recMap) setTimeout(initRecMap, 800);
   if(id==='s-track') setTimeout(()=>{if(!trackMap)initTrackMap();else refreshTrackMap();renderTrack();startTimer();},150);
   if(id==='s-recommend'||id==='s-splash'){stopGPS();if(timerInt)clearInterval(timerInt);if(simInt)clearInterval(simInt);}
   if(id==='s-settings') renderSettings();
@@ -4256,13 +4255,24 @@ function initApp(){
   try { onboarded = !!localStorage.getItem('pg_onboarded'); } catch(e){}
 
   if(currentUser){
-    try{
-      const ob = JSON.parse(localStorage.getItem('pg_ob_profile')||'null');
-      if(ob && ob.level) setTimeout(()=>applyObProfile(ob.level), 300);
-    }catch(e){}
     _fillHistoryPool();
+    // ① 화면 먼저 즉시 표시
     goTo('s-recommend');
-    setTimeout(()=>{ fetchWeather(); renderMtList(); initRegionFilters(); }, 200);
+    // ② 추천 카드 즉시 렌더링 (날씨 없이도)
+    setTimeout(()=>{
+      renderMtList();
+      initRegionFilters();
+      // 저장된 온보딩 프로필 적용
+      try{
+        const ob=JSON.parse(localStorage.getItem('pg_ob_profile')||'null');
+        if(ob&&ob.level) applyObProfile(ob.level);
+      }catch(e){}
+    }, 50);
+    // ③ 날씨·위치는 백그라운드에서 (화면 로딩 안 막음)
+    setTimeout(()=>{ fetchWeather(); }, 300);
+    // ④ 카카오맵은 더 나중에
+    setTimeout(()=>{ if(!recMap) initRecMap(); }, 500);
+
   } else if(!onboarded){
     _fillHistoryPool();
     goTo('s-onboard');
