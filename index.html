@@ -1493,7 +1493,7 @@ button:active{transition:transform .1s;}
 .chk-prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--g500),var(--accent));transition:width .4s ease;}
 
 /* 날씨 경보 배너 */
-.chk-weather-banner{margin:12px 14px 0;border-radius:14px;overflow:hidden;}
+.chk-weather-banner{margin:10px 0 0;border-radius:14px;overflow:hidden;}
 .cwb-danger{background:linear-gradient(135deg,rgba(224,64,48,.28),rgba(224,64,48,.12));border:2px solid rgba(224,64,48,.7);box-shadow:0 3px 14px rgba(224,64,48,.2);}
 .cwb-warn{background:linear-gradient(135deg,rgba(240,160,48,.28),rgba(240,160,48,.12));border:2px solid rgba(240,160,48,.7);box-shadow:0 3px 14px rgba(240,160,48,.2);}
 .cwb-good{background:linear-gradient(135deg,rgba(82,194,117,.2),rgba(82,194,117,.08));border:2px solid rgba(82,194,117,.5);}
@@ -1509,7 +1509,7 @@ button:active{transition:transform .1s;}
 .cwb-desc{font-size:11px;font-weight:600;color:var(--text2);margin-top:2px;line-height:1.5;}
 
 /* 컨디션 체크 */
-.chk-cond-section{margin:10px 14px 0;background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);position:relative;z-index:1;}
+.chk-cond-section{margin:10px 0 0;background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);position:relative;z-index:1;}
 .chk-cond-title{font-size:12px;font-weight:800;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
 .cond-check-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .cond-check-btn{padding:11px 6px;border-radius:12px;border:2px solid var(--borderr);background:var(--g50);text-align:center;cursor:pointer;transition:all .18s;touch-action:manipulation;-webkit-user-select:none;user-select:none;}
@@ -7447,7 +7447,7 @@ function renderWeatherBanner(){
   if(windN>=10||rainN>=70){ type='danger';ico='⛈️';title='등산 자제 권고!';desc=`${windN>=10?`강풍 ${wxData.wind} `:''}${rainN>=70?`강수확률 ${wxData.rain} `:''}안전사고 위험이 높아요.`; }
   else if(windN>=7||rainN>=50){ type='warn';ico='⚠️';title='날씨 주의 필요';desc=`${windN>=7?`바람 ${wxData.wind} · `:''}${rainN>=50?`강수확률 ${wxData.rain} · `:''}우비와 방풍 재킷을 챙기세요.`; }
   banner.innerHTML=`
-    <div class="chk-weather-banner cwb-${type}" style="margin:12px 14px 0;">
+    <div class="chk-weather-banner cwb-${type}">
       <div class="cwb-inner">
         <div class="cwb-ico cwb-ico-${type}">${ico}</div>
         <div style="flex:1"><div class="cwb-title cwb-title-${type}">${title}</div><div class="cwb-desc">${desc}</div></div>
