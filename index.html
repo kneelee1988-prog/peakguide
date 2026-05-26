@@ -274,8 +274,8 @@ Marker.prototype=extend({},Events,{
       this._el.style.marginLeft='-8px';this._el.style.marginTop='-8px';
     }
     var self=this;
-    this._el.addEventListener('click',function(e){e.stopPropagation();self.openPopup();});
-    this._el.addEventListener('touchend',function(e){e.stopPropagation();self.openPopup();});
+    this._el.addEventListener('click',function(e){e.stopPropagation();self.openPopup();self.fire('click',{latlng:self._ll});});
+    this._el.addEventListener('touchend',function(e){e.stopPropagation();self.openPopup();self.fire('click',{latlng:self._ll});});
     map._panes.markerPane.appendChild(this._el);
     map.on('moveend',this._update,this);
     map.on('zoomend',this._update,this);
@@ -438,7 +438,7 @@ Map.prototype=extend({},Events,{
     if(close)close.onclick=function(){el.style.display='none';};
     // 배경 클릭 시 닫기
     var oldClick=this._container.onclick;
-    this._container.onclick=function(){el.style.display='none';self._container.onclick=oldClick;};
+    this._container.onclick=function(){el.style.display='none';self._container.onclick=oldClick;if(typeof clearRecRoute==='function')clearRecRoute();};
   },
   panTo:function(ll,opts){this._center=latLng(ll[0]||ll.lat,ll[1]||ll.lng);this.fire('move');this.fire('moveend');this._redraw();return this;},
   flyTo:function(ll,zoom,opts){this._center=latLng(ll[0]||ll.lat,ll[1]||ll.lng);if(zoom)this._zoom=zoom;this.fire('move');this.fire('moveend');this._redraw();return this;},
@@ -2177,6 +2177,7 @@ html{
             <div class="sf-chip" id="sf-mid" onclick="setSearchFilter('mid')">2~3시간</div>
             <div class="sf-chip" id="sf-long" onclick="setSearchFilter('long')">3시간+</div>
           </div>
+<<<<<<< HEAD
           <div class="cond-section-box" style="--box-bg:#f0f7ff;--box-border:#c8dff8;--box-title:#2a5a8a;margin-bottom:10px;">
             <div class="csb-title"><span class="csb-icon">🏔️</span>난이도</div>
             <div class="chips">
@@ -2198,6 +2199,16 @@ html{
               <div class="sf-chip" id="sf-sunrise" onclick="setSearchFilter('sunrise')">🌅 일출</div>
               <div class="sf-chip" id="sf-history" onclick="setSearchFilter('history')">🏛️ 역사</div>
             </div>
+=======
+          <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">🏔️ 난이도 · 스타일</div>
+          <div class="search-filter-row" style="margin-bottom:14px;">
+            <div class="sf-chip" id="sf-easy" onclick="setSearchFilter('easy')">🌱 입문·초급</div>
+            <div class="sf-chip" id="sf-hard" onclick="setSearchFilter('hard')">⛰️ 중급·고급</div>
+            <div class="sf-chip" id="sf-forest" onclick="setSearchFilter('forest')">🌲 숲길</div>
+            <div class="sf-chip" id="sf-ridge" onclick="setSearchFilter('ridge')">🪨 암릉</div>
+            <div class="sf-chip" id="sf-view" onclick="setSearchFilter('view')">🏙️ 도심뷰</div>
+            <div class="sf-chip" id="sf-family" onclick="setSearchFilter('family')">👨‍👩‍👧 가족</div>
+>>>>>>> d7f83e34f05044224926e461b1920f628ce494fe
           </div>
           <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">📍 지역 · 특별</div>
           <div class="search-filter-row" style="margin-bottom:12px;">
@@ -4704,6 +4715,7 @@ const COURSES=[
 let currentScreen='s-splash';
 let currentUser=null;
 let recMap=null, trackMap=null;
+let recRouteLine=null, recUserMk=null;
 let curCourse=null;
 let elapsed=0, simProg=0, totalGpsDist=0;
 let timerInt=null, simInt=null, gpsWatchId=null;
@@ -5555,6 +5567,7 @@ function renderSearchResults(){
     case 'short':    results = results.filter(m=>m.timeMin<=90);  break;
     case 'mid':      results = results.filter(m=>m.timeMin>90&&m.timeMin<=180); break;
     case 'long':     results = results.filter(m=>m.timeMin>180);  break;
+<<<<<<< HEAD
     case 'intro':    results = results.filter(m=>m.diff==='입문'||m.lvMax===0); break;
     case 'easy':     results = results.filter(m=>m.diff==='초급'||(m.lvMin<=1&&m.lvMax===1)); break;
     case 'medium':   results = results.filter(m=>m.diff.includes('중급')||m.lvMax===2); break;
@@ -5567,6 +5580,14 @@ function renderSearchResults(){
     case 'flower':   results = results.filter(m=>m.tags.includes('꽃길')); break;
     case 'sunrise':  results = results.filter(m=>m.tags.includes('일출')); break;
     case 'history':  results = results.filter(m=>m.tags.includes('역사')); break;
+=======
+    case 'easy':     results = results.filter(m=>m.lvMax<=1);      break;
+    case 'hard':     results = results.filter(m=>m.lvMax>=2);      break;
+    case 'forest':   results = results.filter(m=>m.tags.includes('숲길')); break;
+    case 'ridge':    results = results.filter(m=>m.tags.includes('암릉')); break;
+    case 'view':     results = results.filter(m=>m.tags.includes('도심뷰')); break;
+    case 'family':   results = results.filter(m=>m.familyOk);     break;
+>>>>>>> d7f83e34f05044224926e461b1920f628ce494fe
     case 'seoul':    results = results.filter(m=>m.region&&m.region.includes('서울')); break;
     case 'gyeonggi': results = results.filter(m=>m.region&&m.region.includes('경기')); break;
     case 'gangwon':  results = results.filter(m=>m.region&&m.region.includes('강원')); break;
@@ -7663,10 +7684,58 @@ function initRecMap(){
   MTS.forEach(mt=>{
     const sz=20,em='⛰';
     const ico=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#4a8860;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.35);">${em}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
-    const pop=`<div class="pop-inner"><div class="pop-name">${mt.nm} ${mt.alt}m</div><div class="pop-info">${mt.course}<br>${mt.dist} · ${mt.time} · ${mt.diff}</div></div>`;
+    const pop=`<div class="pop-inner"><div class="pop-name">${mt.nm} ${mt.alt}m</div><div class="pop-info">${mt.course}<br>${mt.dist} · ${mt.time} · ${mt.diff}<br><span style="font-size:10px;color:var(--g400,#5aaa82);">탭하면 경로 표시</span></div></div>`;
     const mk=L.marker([mt.lat,mt.lng],{icon:ico}).addTo(recMap).bindPopup(pop,{maxWidth:200,closeButton:false});
+    mk.on('click',()=>drawRecRoute(mt));
     mkrs[mt.id]=mk;
   });
+  autoLocRecMap();
+}
+
+function autoLocRecMap(){
+  if(window.__userLat&&window.__userLng){centerRecMapOnUser(window.__userLat,window.__userLng);return;}
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const lat=pos.coords.latitude,lng=pos.coords.longitude;
+      window.__userLat=lat;window.__userLng=lng;
+      centerRecMapOnUser(lat,lng);
+      updateMapInfoByLocation(lat,lng);
+    },
+    ()=>{},
+    {timeout:6000,maximumAge:300000}
+  );
+}
+
+function addUserMarkerToRecMap(lat,lng){
+  if(!recMap)return;
+  if(recUserMk){recUserMk.remove();recUserMk=null;}
+  const sz=28;
+  const ico=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:rgba(52,120,246,.18);display:flex;align-items:center;justify-content:center;"><div style="width:12px;height:12px;border-radius:50%;background:#3478F6;border:2.5px solid #fff;box-shadow:0 0 0 4px rgba(52,120,246,.3);"></div></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+  recUserMk=L.marker([lat,lng],{icon:ico,zIndexOffset:1000}).addTo(recMap);
+}
+
+function centerRecMapOnUser(lat,lng){
+  addUserMarkerToRecMap(lat,lng);
+  if(recMap)recMap.flyTo([lat,lng],11,{duration:1.2});
+}
+
+function drawRecRoute(mt){
+  if(recRouteLine){recRouteLine.remove();recRouteLine=null;}
+  if(!mt.wp||mt.wp.length<2)return;
+  recRouteLine=L.polyline(mt.wp,{color:'#43c47a',weight:5,opacity:.9}).addTo(recMap);
+  const lats=mt.wp.map(p=>p[0]),lngs=mt.wp.map(p=>p[1]);
+  const clat=(Math.min(...lats)+Math.max(...lats))/2,clng=(Math.min(...lngs)+Math.max(...lngs))/2;
+  recMap.flyTo([clat,clng],13);
+  const nameEl=document.getElementById('mic-name'),subEl=document.getElementById('mic-sub');
+  if(nameEl)nameEl.textContent=mt.nm+' '+mt.alt+'m';
+  if(subEl)subEl.textContent=mt.course+' · '+mt.dist+' · '+mt.diff;
+}
+
+function clearRecRoute(){
+  if(recRouteLine){recRouteLine.remove();recRouteLine=null;}
+  const lat=window.__userLat,lng=window.__userLng;
+  if(recMap&&lat&&lng)recMap.flyTo([lat,lng],11);
 }
 
 /* ════════════════════════════════════
@@ -8844,6 +8913,7 @@ function updateMapInfoByLocation(lat,lng){
   if(nameEl) nameEl.textContent=regionName+' 등산 지도';
   if(subEl) subEl.textContent=(nearCount||MTS.length)+'개 산 분포';
   if(recMap) recMap.flyTo([lat,lng],11);
+  addUserMarkerToRecMap(lat,lng);
 }
 
 let currentMtSort='dist'; // 기본 정렬: 거리순
