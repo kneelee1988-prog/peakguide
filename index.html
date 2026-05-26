@@ -2157,6 +2157,7 @@ html{
       <div class="stab" id="rtab-search" onclick="rTab('search')">🔍 검색</div>
       <div class="stab" id="rtab-mts" onclick="rTab('mts')">⛰️ 전체산</div>
       <div class="stab" id="rtab-community" onclick="rTab('community')">💬 커뮤니티</div>
+      <div class="stab" id="rtab-mall" onclick="rTab('mall')" style="color:#f0a030;font-weight:800;">🛒 MALL</div>
     </div>
     <div class="sheet-scroll">
       <!-- 검색 패널 -->
@@ -2375,6 +2376,65 @@ html{
         <div id="comm-more-wrap" style="text-align:center;padding:12px 0 4px;display:none;">
           <button onclick="loadMoreComm()" style="padding:9px 24px;border-radius:20px;background:var(--g50);border:1.5px solid var(--borderr);color:var(--text3);font-size:12px;font-weight:700;cursor:pointer;">더보기</button>
         </div>
+      </div>
+
+      <!-- ══ MALL 패널 ══ -->
+      <div id="rp-mall" style="display:none;">
+
+        <!-- 몰 헤더 -->
+        <div style="background:linear-gradient(135deg,#0d1c14,#1a3828);border-radius:16px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden;">
+          <div style="position:absolute;right:-10px;top:-10px;font-size:80px;opacity:.08;">🛒</div>
+          <div style="font-size:11px;font-weight:700;color:var(--g300);letter-spacing:.1em;margin-bottom:6px;">PEAKGUIDE OFFICIAL</div>
+          <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;">PEAKGUIDE MALL</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:14px;">등산·캠핑·아웃도어 전문 쇼핑몰</div>
+          <a href="https://www.peakguide.co.kr" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:800;text-decoration:none;">
+            🛒 몰 바로가기 →
+          </a>
+        </div>
+
+        <!-- 카테고리 -->
+        <div style="font-size:12px;font-weight:800;color:var(--text1);margin-bottom:10px;">카테고리</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+          <a href="https://www.peakguide.co.kr/category/hiking-shoes" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">🥾</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">등산화·신발</div>
+          </a>
+          <a href="https://www.peakguide.co.kr/category/backpack" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">🎒</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">배낭·가방</div>
+          </a>
+          <a href="https://www.peakguide.co.kr/category/outdoor-wear" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">🧥</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">의류·방한</div>
+          </a>
+          <a href="https://www.peakguide.co.kr/category/camping" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">⛺</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">캠핑용품</div>
+          </a>
+          <a href="https://www.peakguide.co.kr/category/safety" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">🦺</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">안전장비</div>
+          </a>
+          <a href="https://www.peakguide.co.kr/category/accessories" target="_blank" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--g50);border:1.5px solid var(--borderr);border-radius:14px;text-decoration:none;">
+            <div style="font-size:24px;">🧢</div><div style="font-size:10px;font-weight:700;color:var(--text2);text-align:center;">모자·액세서리</div>
+          </a>
+        </div>
+
+        <!-- 추천 상품 (준비 중) -->
+        <div style="font-size:12px;font-weight:800;color:var(--text1);margin-bottom:10px;">🔥 오늘의 추천 상품</div>
+        <div style="background:var(--g50);border:1.5px dashed var(--borderr);border-radius:14px;padding:28px;text-align:center;margin-bottom:14px;">
+          <div style="font-size:32px;margin-bottom:10px;">🛍️</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text1);margin-bottom:6px;">상품 준비 중이에요</div>
+          <div style="font-size:11px;color:var(--text4);line-height:1.6;">곧 다양한 등산·캠핑 용품을<br>만나보실 수 있어요!</div>
+        </div>
+
+        <!-- 등산 코스별 필요 장비 -->
+        <div style="font-size:12px;font-weight:800;color:var(--text1);margin-bottom:10px;">💡 이런 장비가 필요해요</div>
+        <div id="mall-gear-suggest" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+          <!-- JS로 렌더링 -->
+        </div>
+
+        <!-- 몰 바로가기 버튼 -->
+        <a href="https://www.peakguide.co.kr" target="_blank"
+           style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:linear-gradient(135deg,var(--g800),var(--g600));color:#fff;border-radius:14px;font-size:14px;font-weight:800;text-decoration:none;margin-bottom:8px;">
+          🛒 PEAKGUIDE MALL 전체보기
+        </a>
+        <div style="text-align:center;font-size:10px;color:var(--text4);">peakguide.co.kr</div>
       </div>
     </div>
   </div>
@@ -5579,6 +5639,7 @@ function rTab(t){
   }
 
   if(t==='community'){ renderCommunity(); renderCrowdWidget(); }
+  if(t==='mall'){ renderMallGearSuggest(); }
   if(t==='search') renderSearchResults();
   if(t==='cond'||t==='mts'){
     recMap&&recMap.flyTo([37.565,127.010],11,{duration:1});
@@ -5632,8 +5693,40 @@ const COMMUNITY_DATA=[
 ];
 
 /* ════════════════════════════════════
-   실시간 혼잡도 시스템
+   PEAKGUIDE MALL
 ════════════════════════════════════ */
+function renderMallGearSuggest(){
+  const el=document.getElementById('mall-gear-suggest');
+  if(!el) return;
+
+  // 현재 날씨·선택된 코스 기반 장비 추천
+  const windNum=parseFloat(wxData.wind)||0;
+  const rainNum=parseInt(wxData.rain)||0;
+  const tempNum=parseInt(wxData.temp)||15;
+
+  const suggests=[];
+
+  // 날씨 기반
+  if(rainNum>=30) suggests.push({ico:'🌂',name:'우비·방수 재킷',reason:`오늘 강수확률 ${wxData.rain}`, q:'rain-jacket'});
+  if(windNum>=7) suggests.push({ico:'🧥',name:'방풍 재킷',reason:`바람 ${wxData.wind} — 방풍 필수`, q:'wind-jacket'});
+  if(tempNum<=10) suggests.push({ico:'🧤',name:'방한 장갑·모자',reason:`기온 ${wxData.temp} — 방한 필요`, q:'winter-gear'});
+
+  // 기본 추천
+  suggests.push({ico:'🥾',name:'등산화',reason:'발목 보호·미끄럼 방지', q:'hiking-shoes'});
+  suggests.push({ico:'🎒',name:'등산 배낭',reason:'물·간식·비상용품 수납', q:'backpack'});
+  suggests.push({ico:'💧',name:'보온병·물통',reason:'수분 보충 필수', q:'water-bottle'});
+
+  el.innerHTML=suggests.slice(0,4).map(s=>`
+    <a href="https://www.peakguide.co.kr/category/${s.q}" target="_blank"
+       style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:1.5px solid var(--borderr);border-radius:13px;text-decoration:none;cursor:pointer;">
+      <div style="font-size:24px;flex-shrink:0;">${s.ico}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;color:var(--text1);">${s.name}</div>
+        <div style="font-size:10px;color:var(--text4);margin-top:2px;">${s.reason}</div>
+      </div>
+      <div style="font-size:12px;color:var(--accent);font-weight:700;">보기 →</div>
+    </a>`).join('');
+}
 function renderCrowdWidget(){
   const now=new Date();
   const hour=now.getHours();
