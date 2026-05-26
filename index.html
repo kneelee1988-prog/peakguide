@@ -2177,14 +2177,27 @@ html{
             <div class="sf-chip" id="sf-mid" onclick="setSearchFilter('mid')">2~3시간</div>
             <div class="sf-chip" id="sf-long" onclick="setSearchFilter('long')">3시간+</div>
           </div>
-          <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">🏔️ 난이도 · 스타일</div>
-          <div class="search-filter-row" style="margin-bottom:14px;">
-            <div class="sf-chip" id="sf-easy" onclick="setSearchFilter('easy')">🌱 입문·초급</div>
-            <div class="sf-chip" id="sf-hard" onclick="setSearchFilter('hard')">⛰️ 중급·고급</div>
-            <div class="sf-chip" id="sf-forest" onclick="setSearchFilter('forest')">🌲 숲길</div>
-            <div class="sf-chip" id="sf-ridge" onclick="setSearchFilter('ridge')">🪨 암릉</div>
-            <div class="sf-chip" id="sf-view" onclick="setSearchFilter('view')">🏙️ 도심뷰</div>
-            <div class="sf-chip" id="sf-family" onclick="setSearchFilter('family')">👨‍👩‍👧 가족</div>
+          <div class="cond-section-box" style="--box-bg:#f0f7ff;--box-border:#c8dff8;--box-title:#2a5a8a;margin-bottom:10px;">
+            <div class="csb-title"><span class="csb-icon">🏔️</span>난이도</div>
+            <div class="chips">
+              <div class="sf-chip" id="sf-intro" onclick="setSearchFilter('intro')">🌱 입문</div>
+              <div class="sf-chip" id="sf-easy" onclick="setSearchFilter('easy')">🥾 초급</div>
+              <div class="sf-chip" id="sf-medium" onclick="setSearchFilter('medium')">⛰️ 중급</div>
+              <div class="sf-chip" id="sf-hard" onclick="setSearchFilter('hard')">🏔️ 고급</div>
+            </div>
+          </div>
+          <div class="cond-section-box" style="--box-bg:#f2fff6;--box-border:#b8e8c8;--box-title:#1e6640;margin-bottom:14px;">
+            <div class="csb-title"><span class="csb-icon">🗺️</span>코스 스타일</div>
+            <div class="chips">
+              <div class="sf-chip" id="sf-forest" onclick="setSearchFilter('forest')">🌲 숲길</div>
+              <div class="sf-chip" id="sf-ridge" onclick="setSearchFilter('ridge')">🪨 암릉</div>
+              <div class="sf-chip" id="sf-view" onclick="setSearchFilter('view')">🏙️ 도심뷰</div>
+              <div class="sf-chip" id="sf-family" onclick="setSearchFilter('family')">👨‍👩‍👧 가족</div>
+              <div class="sf-chip" id="sf-valley" onclick="setSearchFilter('valley')">🌊 계곡</div>
+              <div class="sf-chip" id="sf-flower" onclick="setSearchFilter('flower')">🌸 꽃길</div>
+              <div class="sf-chip" id="sf-sunrise" onclick="setSearchFilter('sunrise')">🌅 일출</div>
+              <div class="sf-chip" id="sf-history" onclick="setSearchFilter('history')">🏛️ 역사</div>
+            </div>
           </div>
           <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">📍 지역 · 특별</div>
           <div class="search-filter-row" style="margin-bottom:12px;">
@@ -5542,12 +5555,18 @@ function renderSearchResults(){
     case 'short':    results = results.filter(m=>m.timeMin<=90);  break;
     case 'mid':      results = results.filter(m=>m.timeMin>90&&m.timeMin<=180); break;
     case 'long':     results = results.filter(m=>m.timeMin>180);  break;
-    case 'easy':     results = results.filter(m=>m.lvMax<=1);      break;
-    case 'hard':     results = results.filter(m=>m.lvMax>=2);      break;
+    case 'intro':    results = results.filter(m=>m.diff==='입문'||m.lvMax===0); break;
+    case 'easy':     results = results.filter(m=>m.diff==='초급'||(m.lvMin<=1&&m.lvMax===1)); break;
+    case 'medium':   results = results.filter(m=>m.diff.includes('중급')||m.lvMax===2); break;
+    case 'hard':     results = results.filter(m=>m.diff==='고급'||m.lvMax>=3); break;
     case 'forest':   results = results.filter(m=>m.tags.includes('숲길')); break;
     case 'ridge':    results = results.filter(m=>m.tags.includes('암릉')); break;
     case 'view':     results = results.filter(m=>m.tags.includes('도심뷰')); break;
-    case 'family':   results = results.filter(m=>m.familyOk);     break;
+    case 'family':   results = results.filter(m=>m.familyOk); break;
+    case 'valley':   results = results.filter(m=>m.tags.includes('계곡')); break;
+    case 'flower':   results = results.filter(m=>m.tags.includes('꽃길')); break;
+    case 'sunrise':  results = results.filter(m=>m.tags.includes('일출')); break;
+    case 'history':  results = results.filter(m=>m.tags.includes('역사')); break;
     case 'seoul':    results = results.filter(m=>m.region&&m.region.includes('서울')); break;
     case 'gyeonggi': results = results.filter(m=>m.region&&m.region.includes('경기')); break;
     case 'gangwon':  results = results.filter(m=>m.region&&m.region.includes('강원')); break;
