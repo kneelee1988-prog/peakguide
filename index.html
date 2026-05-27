@@ -17656,25 +17656,34 @@ document.addEventListener('keydown',e=>{
 (function(){
   var inp = document.getElementById('main-search-input');
   if(!inp) return;
-
-  // input 이벤트 리스너 (oninput 인라인 대체)
-  ['input', 'keyup', 'compositionend'].forEach(function(evt){
-    inp.addEventListener(evt, function(){ onSearchInput(inp.value); });
-  });
-
-  if(!isWebView) return;
-
-  // MutationObserver 1: 검색 패널이 display:block이 될 때 자동 포커스
   var panel = document.getElementById('rp-search');
+  var listenersReady = false;
+
+  function registerInputListeners(){
+    if(listenersReady) return;
+    listenersReady = true;
+    ['input', 'keyup', 'compositionend'].forEach(function(evt){
+      inp.addEventListener(evt, function(){ onSearchInput(inp.value); });
+    });
+  }
+
+  // 비WebView: 즉시 이벤트 등록
+  if(!isWebView){
+    registerInputListeners();
+    return;
+  }
+
+  // WebView: 패널이 열린 뒤 200ms 후 이벤트 등록 → 500ms 후 포커스
   if(panel){
     new MutationObserver(function(){
-      if(panel.style.display !== 'none' && document.activeElement !== inp){
-        setTimeout(function(){ inp.focus(); }, 80);
+      if(panel.style.display !== 'none'){
+        setTimeout(function(){ registerInputListeners(); }, 200);
+        setTimeout(function(){ if(document.activeElement !== inp) inp.focus(); }, 500);
       }
     }).observe(panel, { attributes: true, attributeFilter: ['style'] });
   }
 
-  // MutationObserver 2: 터치 직후 WebView가 activeElement를 가로채면 즉시 복구
+  // 터치 직후 WebView가 activeElement를 가로채면 즉시 복구
   inp.addEventListener('touchstart', function(){
     var obs = new MutationObserver(function(){
       if(document.activeElement !== inp){
