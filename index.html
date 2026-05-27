@@ -17604,79 +17604,79 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')     closeLightbox();
 });
 
-// ── 검색창 포커스 잠금 ──────────────────────────────────────────
+// ── 검색창 포커스 가드 ──────────────────────────────────────────
+// 설계 원칙:
+//  - 초기 탭→포커스→키보드 흐름에 일절 개입하지 않음
+//  - guard는 input이 실제로 포커스된 이후에만 활성화
+//  - blur 리스너 없음: rAF 재포커스 루프가 안드로이드 키보드를 불안정하게 만드는 핵심 원인
+//  - iframe/video 탈취만 사후 처리(50ms setTimeout)
 (function(){
-  let _lock = false;
-  let _rafId = null;
+  let _guard = false;
+  let _stealTimer = null;
 
-  function inp(){ return document.getElementById('main-search-input'); }
-  function inSearchPanel(el){ return !!(el && el.closest('#rp-search')); }
-
-  function stealFocus(){
-    _rafId = null;
-    const i = inp();
-    if(_lock && i) i.focus();
+  function getInp(){ return document.getElementById('main-search-input'); }
+  function inPanel(el){ return !!(el && el.closest('#rp-search')); }
+  function isInteractive(el){
+    if(!el) return true;
+    const t = el.tagName;
+    return t==='A'||t==='BUTTON'||t==='INPUT'||t==='SELECT'||t==='TEXTAREA'||
+           el.hasAttribute('onclick')||el.hasAttribute('href')||
+           (el.getAttribute('tabindex')!==null && Number(el.getAttribute('tabindex'))>=0);
   }
 
-  function scheduleFocus(){
-    if(_rafId) return;
-    _rafId = requestAnimationFrame(stealFocus);
-  }
-
-  // 검색창 직접 터치/클릭 → 잠금 ON
-  // stopPropagation 제거: 캡처 단계에서 전파 차단 시 브라우저의 click 합성이 막혀 키보드가 올라오지 않음
-  document.addEventListener('mousedown', function(e){
-    const i = inp();
-    if(!i) return;
-    if(e.target === i){
-      _lock = true;
-    } else if(!inSearchPanel(e.target)){
-      _lock = false;
-      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
-    }
-  }, true);
-
-  document.addEventListener('touchstart', function(e){
-    const i = inp();
-    if(!i) return;
-    if(e.target === i){
-      _lock = true;
-    } else if(!inSearchPanel(e.target)){
-      _lock = false;
-      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
-    }
-  }, { capture: true, passive: true });
-
-  // focusin 캡처: 다른 요소(iframe, 지도, 비디오 등)가 포커스를 가져가려 할 때 가로채기
+  // focusin 캡처: input이 실제로 포커스됐을 때만 guard 활성화
+  // 안드로이드가 탭 처리 중 중간 요소(body 등)에 발생시키는 focusin은 guard 비활성 상태이므로 무시됨
   document.addEventListener('focusin', function(e){
-    if(!_lock) return;
-    const i = inp();
-    if(!i || e.target === i) return;
-    scheduleFocus();
+    const i = getInp();
+    if(!i) return;
+
+    if(e.target === i){
+      // 브라우저가 정상적으로 input을 포커스함 → guard 시작
+      _guard = true;
+      if(_stealTimer){ clearTimeout(_stealTimer); _stealTimer = null; }
+      return;
+    }
+
+    if(!_guard) return;
+
+    // guard 활성 중 다른 요소가 포커스를 가져가려 함
+    // 사용자가 의도적으로 탭한 interactive 요소나 패널 내부 요소는 허용
+    if(isInteractive(e.target) || inPanel(e.target)) return;
+
+    // iframe · video · 지도 컨테이너 등 비상호작용 요소의 탈취 → 되찾기
+    try{ e.target.blur(); }catch(_){}
+    if(_stealTimer) clearTimeout(_stealTimer);
+    _stealTimer = setTimeout(function(){
+      _stealTimer = null;
+      if(_guard){ var i2=getInp(); if(i2) i2.focus(); }
+    }, 50);
   }, true);
 
-  // blur 캡처: 검색창이 포커스를 잃으면 즉시 되돌리기
-  document.addEventListener('blur', function(e){
-    if(!_lock) return;
-    const i = inp();
-    if(!i || e.target !== i) return;
-    scheduleFocus();
-  }, true);
+  // 패널 외부 터치·클릭 → guard 해제 (키보드 닫기 허용)
+  function releaseGuard(e){
+    if(!_guard) return;
+    if(!inPanel(e.target)){
+      _guard = false;
+      if(_stealTimer){ clearTimeout(_stealTimer); _stealTimer = null; }
+    }
+  }
+  document.addEventListener('touchstart', releaseGuard, { passive: true });
+  document.addEventListener('mousedown', releaseGuard);
 
-  // Escape / Enter → 잠금 해제 (키보드 닫기 허용)
+  // Escape / Enter → guard 해제
   document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' || e.key === 'Enter'){
-      _lock = false;
-      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    if(e.key==='Escape'||e.key==='Enter'){
+      _guard = false;
+      if(_stealTimer){ clearTimeout(_stealTimer); _stealTimer = null; }
     }
   }, true);
 
-  // 탭 전환 시 잠금 해제 (rTab 후크)
-  const _origRTab = window.rTab;
+  // 탭 전환 시 guard 해제
+  var _origRTab = window.rTab;
   window.rTab = function(t){
     if(t !== 'search'){
-      _lock = false;
-      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+      _guard = false;
+      if(_stealTimer){ clearTimeout(_stealTimer); _stealTimer = null; }
     }
     if(typeof _origRTab === 'function') _origRTab(t);
   };
