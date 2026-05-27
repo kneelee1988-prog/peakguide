@@ -1191,6 +1191,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 .search-input{background:none;border:none;outline:none;color:#fff;font-size:13px;font-family:inherit;flex:1;width:100%;}
 .search-input::placeholder{color:rgba(255,255,255,.45);}
 .search-clear{font-size:12px;opacity:.5;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+#main-search-input:empty::before{content:'산 이름, 지역, 태그로 검색...';color:#aaa;pointer-events:none;}
+#main-search-input:focus{border-color:var(--g500)!important;outline:none;}
 .search-results{padding:0 13px 12px;}
 .search-result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:13px;background:#fff;margin-bottom:7px;cursor:pointer;border:1.5px solid var(--borderr);transition:all .18s;box-shadow:var(--shadow);}
 .search-result-item:active{transform:scale(.99);}
@@ -2170,10 +2172,16 @@ html{
         <!-- 검색창 -->
         <div id="search-wrap" style="position:relative;margin:4px 0 10px;">
           <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
-          <input id="main-search-input" type="text" placeholder="산 이름, 지역, 태그로 검색..."
-            inputmode="text" enterkeyhint="search" tabindex="0"
-            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-            style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;">
+          <div id="main-search-input"
+            contenteditable="true"
+            role="textbox"
+            inputmode="text"
+            tabindex="0"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+            autocomplete="off"
+            style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;box-sizing:border-box;min-height:44px;line-height:1.4;white-space:nowrap;overflow:hidden;cursor:text;position:relative;"></div>
           <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);z-index:2;touch-action:manipulation;">✕</button>
         </div>
         <div class="search-results" id="search-results"></div>
@@ -13866,7 +13874,7 @@ function clearSearch(){
   searchQuery = '';
   searchLimit = 20;
   const inp = document.getElementById('main-search-input');
-  if(inp) inp.value = '';
+  if(inp) inp.innerHTML = '';
   document.getElementById('search-clear-btn').style.display = 'none';
   const fa = document.getElementById('search-filters-area');
   if(fa) fa.style.display = '';
@@ -17652,48 +17660,41 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')     closeLightbox();
 });
 
-// ── 검색창 이벤트 및 WebView 포커스 처리 ──────────────────────
+// ── contenteditable 검색창 이벤트 ──────────────────────────────
 (function(){
-  var inp = document.getElementById('main-search-input');
-  if(!inp) return;
+  var el = document.getElementById('main-search-input');
+  if(!el) return;
+
+  // input 이벤트: innerText 추출 후 검색
+  el.addEventListener('input', function(){
+    // 브라우저가 삽입하는 <br> 제거 (텍스트 전부 삭제 시)
+    if(this.innerHTML === '<br>' || this.innerHTML === '<div><br></div>') this.innerHTML = '';
+    onSearchInput(this.innerText.replace(/\n/g, '').trim());
+  });
+
+  // Enter 키로 <br> 삽입 방지
+  el.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') e.preventDefault();
+  });
+
+  // 붙여넣기 시 plain text만 허용
+  el.addEventListener('paste', function(e){
+    e.preventDefault();
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  });
+
+  if(!isWebView) return;
+
+  // WebView: 패널이 열릴 때 500ms 후 포커스
   var panel = document.getElementById('rp-search');
-  var listenersReady = false;
-
-  function registerInputListeners(){
-    if(listenersReady) return;
-    listenersReady = true;
-    ['input', 'keyup', 'compositionend'].forEach(function(evt){
-      inp.addEventListener(evt, function(){ onSearchInput(inp.value); });
-    });
-  }
-
-  // 비WebView: 즉시 이벤트 등록
-  if(!isWebView){
-    registerInputListeners();
-    return;
-  }
-
-  // WebView: 패널이 열린 뒤 200ms 후 이벤트 등록 → 500ms 후 포커스
   if(panel){
     new MutationObserver(function(){
       if(panel.style.display !== 'none'){
-        setTimeout(function(){ registerInputListeners(); }, 200);
-        setTimeout(function(){ if(document.activeElement !== inp) inp.focus(); }, 500);
+        setTimeout(function(){ el.focus(); }, 500);
       }
     }).observe(panel, { attributes: true, attributeFilter: ['style'] });
   }
-
-  // 터치 직후 WebView가 activeElement를 가로채면 즉시 복구
-  inp.addEventListener('touchstart', function(){
-    var obs = new MutationObserver(function(){
-      if(document.activeElement !== inp){
-        obs.disconnect();
-        inp.focus();
-      }
-    });
-    obs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-    setTimeout(function(){ obs.disconnect(); }, 600);
-  }, { passive: true });
 })();
 </script>
 <!-- 사진 라이트박스 -->
