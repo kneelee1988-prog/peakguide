@@ -16031,23 +16031,36 @@ function sendTogetherInvite(){
   showToast(`📩 ${mt?.nm||course} 등산 제안을 친구들에게 보냈어요!`);
 }
 
+function guessRegionByCoord(m){
+  var lat=m.lat, lng=m.lng;
+  if(!lat||!lng) return null;
+  if(lat<33.7) return 'jeju';
+  if(lat>37.4&&lng<127.3) return 'seoul';
+  if(lat>37.0&&lng>127.8) return 'gangwon';
+  if(lat>36.8) return 'gyeonggi';
+  if(lat>35.5&&lng>128.2) return 'gyeongbuk';
+  if(lat<=35.5&&lng>127.5) return 'gyeongnam';
+  if(lat<=36.0&&lng<=127.5) return 'jeonla';
+  return 'chungcheong';
+}
+
 const REGION_CLUSTERS=[
   {key:'seoul',       name:'서울',  emoji:'🗼', lat:37.545, lng:126.960, color:'#e04848',
-   filter:m=>m.region&&m.region.includes('서울')},
-  {key:'gyeonggi',    name:'경기',  emoji:'🌿', lat:37.200, lng:127.350, color:'#f0a030',
-   filter:m=>m.region&&m.region.includes('경기')},
-  {key:'gangwon',     name:'강원',  emoji:'🏔️', lat:37.750, lng:128.450, color:'#4a9ed4',
-   filter:m=>m.region&&m.region.includes('강원')},
-  {key:'chungcheong', name:'충청',  emoji:'🌾', lat:36.700, lng:127.100, color:'#9b6fd4',
-   filter:m=>(m.region&&m.region.includes('충'))||(m.city&&(m.city.includes('천안')||m.city.includes('아산')))},
-  {key:'gyeongbuk',   name:'경북',  emoji:'🏛️', lat:36.250, lng:128.800, color:'#52c275',
-   filter:m=>m.region&&(m.region.includes('경북')||m.region.includes('대구'))},
-  {key:'gyeongnam',   name:'경남',  emoji:'🌊', lat:35.250, lng:128.350, color:'#3478F6',
-   filter:m=>m.region&&(m.region.includes('경남')||m.region.includes('부산')||m.region.includes('울산'))},
-  {key:'jeonla',      name:'전라',  emoji:'🌺', lat:35.300, lng:126.950, color:'#e06090',
-   filter:m=>m.region&&(m.region.includes('전남')||m.region.includes('전북')||m.region.includes('광주'))},
-  {key:'jeju',        name:'제주',  emoji:'🍊', lat:33.380, lng:126.550, color:'#e0a020',
-   filter:m=>m.region&&m.region.includes('제주')},
+   filter:m=>(m.region&&m.region.includes('서울'))||(m.region==='기타'&&guessRegionByCoord(m)==='seoul')||(!m.region&&guessRegionByCoord(m)==='seoul')},
+  {key:'gyeonggi',    name:'경기',  emoji:'🌿', lat:37.430, lng:127.250, color:'#f0a030',
+   filter:m=>(m.region&&m.region.includes('경기'))||m.region==='인천'||(m.region==='기타'&&guessRegionByCoord(m)==='gyeonggi')||(!m.region&&guessRegionByCoord(m)==='gyeonggi')},
+  {key:'gangwon',     name:'강원',  emoji:'🏔️', lat:37.750, lng:128.200, color:'#4a9ed4',
+   filter:m=>(m.region&&m.region.includes('강원'))||(m.region==='기타'&&guessRegionByCoord(m)==='gangwon')},
+  {key:'chungcheong', name:'충청',  emoji:'🌾', lat:36.500, lng:127.400, color:'#9b6fd4',
+   filter:m=>(m.region&&m.region.includes('충'))||m.region==='대전'||(m.city&&(m.city.includes('천안')||m.city.includes('아산')))||(m.region==='기타'&&guessRegionByCoord(m)==='chungcheong')||(!m.region&&guessRegionByCoord(m)==='chungcheong')},
+  {key:'gyeongbuk',   name:'경북',  emoji:'🏛️', lat:36.300, lng:128.600, color:'#52c275',
+   filter:m=>(m.region&&(m.region.includes('경북')||m.region.includes('대구')))||(m.region==='기타'&&guessRegionByCoord(m)==='gyeongbuk')},
+  {key:'gyeongnam',   name:'경남',  emoji:'🌊', lat:35.400, lng:128.600, color:'#3478F6',
+   filter:m=>(m.region&&(m.region.includes('경남')||m.region.includes('부산')||m.region.includes('울산')))||(m.region==='기타'&&guessRegionByCoord(m)==='gyeongnam')},
+  {key:'jeonla',      name:'전라',  emoji:'🌺', lat:35.200, lng:127.000, color:'#e06090',
+   filter:m=>(m.region&&(m.region.includes('전남')||m.region.includes('전북')||m.region.includes('광주')))||(m.region==='기타'&&guessRegionByCoord(m)==='jeonla')},
+  {key:'jeju',        name:'제주',  emoji:'🍊', lat:33.400, lng:126.550, color:'#e0a020',
+   filter:m=>(m.region&&m.region.includes('제주'))||(m.region==='기타'&&guessRegionByCoord(m)==='jeju')},
 ];
 
 function initRecMap(){
