@@ -2159,6 +2159,7 @@ html{
           <div style="position:relative;margin-bottom:10px;">
             <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
             <input id="main-search-input" type="text" placeholder="산 이름, 지역, 태그로 검색..." oninput="onSearchInput(this.value)"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:14px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;">
             <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);">✕</button>
           </div>
@@ -17602,6 +17603,85 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft')  lbPrev();
   if(e.key==='Escape')     closeLightbox();
 });
+
+// ── 검색창 포커스 잠금 ──────────────────────────────────────────
+(function(){
+  let _lock = false;
+  let _rafId = null;
+
+  function inp(){ return document.getElementById('main-search-input'); }
+  function inSearchPanel(el){ return !!(el && el.closest('#rp-search')); }
+
+  function stealFocus(){
+    _rafId = null;
+    const i = inp();
+    if(_lock && i) i.focus();
+  }
+
+  function scheduleFocus(){
+    if(_rafId) return;
+    _rafId = requestAnimationFrame(stealFocus);
+  }
+
+  // 검색창 직접 터치/클릭 → 잠금 ON + 이벤트 상위 전파 차단
+  document.addEventListener('mousedown', function(e){
+    const i = inp();
+    if(!i) return;
+    if(e.target === i){
+      _lock = true;
+      e.stopPropagation();
+    } else if(!inSearchPanel(e.target)){
+      _lock = false;
+      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    }
+  }, true);
+
+  document.addEventListener('touchstart', function(e){
+    const i = inp();
+    if(!i) return;
+    if(e.target === i || e.target.closest('#main-search-input')){
+      _lock = true;
+      e.stopPropagation();
+    } else if(!inSearchPanel(e.target)){
+      _lock = false;
+      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    }
+  }, { capture: true, passive: true });
+
+  // focusin 캡처: 다른 요소(iframe, 지도, 비디오 등)가 포커스를 가져가려 할 때 가로채기
+  document.addEventListener('focusin', function(e){
+    if(!_lock) return;
+    const i = inp();
+    if(!i || e.target === i) return;
+    scheduleFocus();
+  }, true);
+
+  // blur 캡처: 검색창이 포커스를 잃으면 즉시 되돌리기
+  document.addEventListener('blur', function(e){
+    if(!_lock) return;
+    const i = inp();
+    if(!i || e.target !== i) return;
+    scheduleFocus();
+  }, true);
+
+  // Escape / Enter → 잠금 해제 (키보드 닫기 허용)
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' || e.key === 'Enter'){
+      _lock = false;
+      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    }
+  }, true);
+
+  // 탭 전환 시 잠금 해제 (rTab 후크)
+  const _origRTab = window.rTab;
+  window.rTab = function(t){
+    if(t !== 'search'){
+      _lock = false;
+      if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    }
+    if(typeof _origRTab === 'function') _origRTab(t);
+  };
+})();
 </script>
 <!-- 사진 라이트박스 -->
 <div id="photo-lightbox" onclick="lbBgClick(event)">
