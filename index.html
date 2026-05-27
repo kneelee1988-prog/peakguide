@@ -659,9 +659,9 @@ body{
 ═══════════════════════════ */
 #s-recommend{background:#fff;}
 .map-zone{flex-shrink:0;height:36vh;min-height:180px;position:relative;overflow:hidden;touch-action:pan-x pan-y;}
-#map-rec{width:100%;height:100%;}
+#map-rec{width:100%;height:100%;min-height:180px;position:relative;}
 .leaflet-container{background:#1c3020!important;}
-.leaflet-tile{filter:brightness(.8) saturate(.75) hue-rotate(8deg);}
+.leaflet-tile{-webkit-filter:brightness(.8) saturate(.75) hue-rotate(8deg);filter:brightness(.8) saturate(.75) hue-rotate(8deg);}
 .map-topbar{position:absolute;top:0;left:0;right:0;z-index:1000;pointer-events:none;padding:11px 13px 8px;background:linear-gradient(to bottom,rgba(9,22,17,.92) 0%,transparent 100%);display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .logo-row{display:flex;align-items:center;gap:7px;pointer-events:auto;}
 .logo-ico{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--g600),var(--accent));display:flex;align-items:center;justify-content:center;}
@@ -15085,8 +15085,8 @@ function initDetailMap(){
   detailMap=L.map('map-detail',{center:[mt.lat,mt.lng],zoom:14,zoomControl:false,attributionControl:false});
 
   // OSM 타일 + CSS 초록 필터로 다크 그린 테마 구현
-  const tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    maxZoom:18, opacity:.88
+  const tileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    maxZoom:19, opacity:.88
   }).addTo(detailMap);
 
   // 타일 컨테이너에 초록 필터 적용
@@ -15983,7 +15983,7 @@ function sendTogetherInvite(){
 
 function initRecMap(){
   recMap=L.map('map-rec',{center:[37.565,127.010],zoom:11,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.88}).addTo(recMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,opacity:.88}).addTo(recMap);
   watchTileLoad(recMap,'map-rec-offline','map-rec');
   fixIOSLeaflet(recMap);
   MTS.forEach(mt=>{
@@ -15995,6 +15995,7 @@ function initRecMap(){
     mkrs[mt.id]=mk;
   });
   autoLocRecMap();
+  setTimeout(function(){ if(recMap) recMap.invalidateSize(); }, 400);
 }
 
 function autoLocRecMap(){
@@ -16107,7 +16108,7 @@ function showSimPrompt(){
 function initTrackMap(){
   const mt=MTS.find(m=>m.id===curCourse.id);
   trackMap=L.map('map-track',{center:[mt.wp[1][0],mt.wp[1][1]],zoom:15,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.88}).addTo(trackMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,opacity:.88}).addTo(trackMap);
   watchTileLoad(trackMap,'map-track-offline','map-track');
   fixIOSLeaflet(trackMap);
   drawTrackLayers();
