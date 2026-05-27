@@ -1589,6 +1589,19 @@ button, [onclick], .chip, .stab, .ttab, .login-tab, .ob-btn,
   cursor: pointer;
 }
 
+/* ── WebView / 카카오톡 인앱브라우저 검색창 ─────────────── */
+.is-webview #main-search-input {
+  -webkit-tap-highlight-color: rgba(0,0,0,0);  /* transparent 대신 투명 rgba — WebView 탭 인식에 영향 없는 값 */
+  -webkit-touch-callout: default;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+.is-webview #rp-search,
+.is-webview #rp-search * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* iOS Safe Area - 하단 고정 요소들 */
 .det-cta{
   padding-bottom:max(11px, calc(11px + env(safe-area-inset-bottom, 0px)));
@@ -2162,6 +2175,7 @@ html{
               oninput="onSearchInput(this.value)"
               onclick="this.focus()"
               ontouchend="this.focus()"
+              onfocus="this.removeAttribute('readonly')"
               inputmode="text" enterkeyhint="search"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;position:relative;z-index:1;">
@@ -17333,6 +17347,10 @@ function emptyState(ico, title, sub, btnText, btnOnclick){
 // iOS Safari 감지
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+// WebView / 카카오톡 인앱브라우저 감지
+const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+const isWebView = /wv|WebView/i.test(navigator.userAgent) || isKakao;
+if(isWebView) document.documentElement.classList.add('is-webview');
 
 // iOS에서 100vh 버그 수정 - 실제 뷰포트 높이 계산
 function fixIOSHeight(){
@@ -17609,7 +17627,27 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')     closeLightbox();
 });
 
-// 검색창: 터치 시 자연스럽게 포커스·키보드 동작 (별도 이벤트 처리 없음)
+// ── WebView / 카카오톡 인앱브라우저 검색창 포커스 처리 ──────────
+function initWebViewSearch(){
+  if(!isWebView) return;
+  var inp = document.getElementById('main-search-input');
+  if(!inp) return;
+
+  // touchstart에서 preventDefault → 300ms 딜레이/WebView 기본 동작 우회
+  // 이후 수동으로 focus+click 호출하여 키보드를 확실히 올림
+  inp.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    inp.removeAttribute('readonly');
+    inp.focus();
+    inp.click();
+    setTimeout(function(){
+      inp.removeAttribute('readonly');
+      inp.focus();
+    }, 300);
+  }, { passive: false });
+}
+// DOM 준비 완료 직후 실행 (스크립트가 </body> 직전이므로 DOM은 이미 파싱됨)
+initWebViewSearch();
 </script>
 <!-- 사진 라이트박스 -->
 <div id="photo-lightbox" onclick="lbBgClick(event)">
