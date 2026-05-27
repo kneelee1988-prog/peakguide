@@ -13911,8 +13911,8 @@ function renderSearchResults(){
     );
   }
 
-  // 카테고리 필터
-  switch(searchFilter){
+  // 카테고리 필터 (검색어 입력 중엔 전국 검색 — 필터 무시)
+  if(!searchQuery) switch(searchFilter){
     case 'short':    results = results.filter(m=>m.timeMin<=90);  break;
     case 'mid':      results = results.filter(m=>m.timeMin>90&&m.timeMin<=180); break;
     case 'long':     results = results.filter(m=>m.timeMin>180);  break;
