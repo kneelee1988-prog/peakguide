@@ -2176,7 +2176,7 @@ html{
               onclick="this.focus()"
               ontouchend="this.focus()"
               onfocus="this.removeAttribute('readonly')"
-              inputmode="text" enterkeyhint="search"
+              inputmode="text" enterkeyhint="search" tabindex="0"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;position:relative;z-index:1;">
             <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);z-index:2;touch-action:manipulation;">✕</button>
@@ -15099,7 +15099,7 @@ function initDetailMap(){
   detailMap=L.map('map-detail',{center:[mt.lat,mt.lng],zoom:14,zoomControl:false,attributionControl:false});
 
   // OSM 타일 + CSS 초록 필터로 다크 그린 테마 구현
-  const tileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+  const tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
     maxZoom:19, opacity:.88
   }).addTo(detailMap);
 
@@ -15997,7 +15997,7 @@ function sendTogetherInvite(){
 
 function initRecMap(){
   recMap=L.map('map-rec',{center:[37.565,127.010],zoom:11,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,opacity:.88}).addTo(recMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,opacity:.88}).addTo(recMap);
   watchTileLoad(recMap,'map-rec-offline','map-rec');
   fixIOSLeaflet(recMap);
   MTS.forEach(mt=>{
@@ -16122,7 +16122,7 @@ function showSimPrompt(){
 function initTrackMap(){
   const mt=MTS.find(m=>m.id===curCourse.id);
   trackMap=L.map('map-track',{center:[mt.wp[1][0],mt.wp[1][1]],zoom:15,zoomControl:false,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,opacity:.88}).addTo(trackMap);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,opacity:.88}).addTo(trackMap);
   watchTileLoad(trackMap,'map-track-offline','map-track');
   fixIOSLeaflet(trackMap);
   drawTrackLayers();
@@ -17633,9 +17633,12 @@ function initWebViewSearch(){
   var inp = document.getElementById('main-search-input');
   if(!inp) return;
 
-  // touchstart에서 preventDefault → 300ms 딜레이/WebView 기본 동작 우회
-  // 이후 수동으로 focus+click 호출하여 키보드를 확실히 올림
+  // input의 touchstart 이벤트 완전 제어:
+  // - stopPropagation: document 레벨 touchstart가 포커스를 가로채는 것 차단
+  // - preventDefault: WebView 300ms 딜레이 및 기본 터치 동작 우회
+  // - 이후 수동으로 focus+click 호출하여 키보드를 확실히 올림
   inp.addEventListener('touchstart', function(e){
+    e.stopPropagation();
     e.preventDefault();
     inp.removeAttribute('readonly');
     inp.focus();
@@ -17644,7 +17647,20 @@ function initWebViewSearch(){
       inp.removeAttribute('readonly');
       inp.focus();
     }, 300);
-  }, { passive: false });
+  }, { passive: false, capture: true });
+
+  // 검색 탭 클릭 시 WebView에서 추가 포커스 시도
+  // rTab('search') 호출 후 패널이 표시되고 나서 focus
+  var _origRTab = window.rTab;
+  window.rTab = function(t){
+    if(typeof _origRTab === 'function') _origRTab(t);
+    if(t === 'search'){
+      setTimeout(function(){
+        var i = document.getElementById('main-search-input');
+        if(i){ i.removeAttribute('readonly'); i.focus(); }
+      }, 100);
+    }
+  };
 }
 // DOM 준비 완료 직후 실행 (스크립트가 </body> 직전이므로 DOM은 이미 파싱됨)
 initWebViewSearch();
