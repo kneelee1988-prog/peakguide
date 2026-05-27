@@ -2167,21 +2167,17 @@ html{
     <div class="sheet-scroll">
       <!-- 검색 패널 -->
       <div id="rp-search" style="display:none;">
-        <div style="padding-top:4px;">
-          <!-- 검색창 -->
-          <div style="position:relative;margin-bottom:10px;touch-action:manipulation;z-index:1;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;z-index:0;">🔍</span>
-            <input id="main-search-input" type="text" placeholder="산 이름, 지역, 태그로 검색..."
-              onclick="this.focus()"
-              ontouchend="this.focus()"
-              onfocus="this.removeAttribute('readonly')"
-              inputmode="text" enterkeyhint="search" tabindex="0"
-              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-              style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;position:relative;z-index:999;pointer-events:auto;">
-            <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);z-index:2;touch-action:manipulation;">✕</button>
-          </div>
-          <div class="search-results" id="search-results"></div>
-          <div id="search-filters-area">
+        <!-- 검색창 -->
+        <div id="search-wrap" style="position:relative;margin:4px 0 10px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
+          <input id="main-search-input" type="text" placeholder="산 이름, 지역, 태그로 검색..."
+            inputmode="text" enterkeyhint="search" tabindex="0"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;">
+          <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);z-index:2;touch-action:manipulation;">✕</button>
+        </div>
+        <div class="search-results" id="search-results"></div>
+        <div id="search-filters-area">
           <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">⏱️ 소요시간</div>
           <div class="search-filter-row" style="margin-bottom:14px;">
             <div class="sf-chip active" id="sf-all" onclick="setSearchFilter('all')">전체</div>
@@ -2222,7 +2218,6 @@ html{
             <div class="sf-chip" id="sf-top100" onclick="setSearchFilter('top100')">🏅 100대명산</div>
           </div>
           </div>
-        </div>
       </div>
 
       <!-- 조건 설정 -->
@@ -13485,6 +13480,17 @@ function logout(){
   showToast('로그아웃 됐어요');
 }
 
+/* GPS 좌표 → 검색 지역 필터 키 반환 */
+function detectRegionFilter(lat, lng){
+  if(lat>=33.1&&lat<=33.6) return 'jeju';
+  if(lat>=37.4&&lat<=37.7&&lng>=126.7&&lng<=127.2) return 'seoul';
+  if(lat>=36.6&&lat<=37.0&&lng>=126.7&&lng<=127.4) return 'cheonan'; // 천안·아산
+  if(lat>=37.2&&lat<=38.7&&lng>=127.3&&lng<=129.5) return 'gangwon';
+  if(lat>=36.9&&lat<=38.2&&lng>=126.5&&lng<=127.9) return 'gyeonggi';
+  if(lat>=34.5&&lat<=37.2&&lng>=125.5&&lng<=129.5) return 'south';
+  return 'all';
+}
+
 /* ════════════════════════════════════
    1순위: 실제 날씨 API 연동
 ════════════════════════════════════ */
@@ -13497,6 +13503,11 @@ async function fetchWeather(){
     lat=pos.coords.latitude; lng=pos.coords.longitude;
     window.__userLat=lat; window.__userLng=lng;
     updateMapInfoByLocation(lat, lng);
+    // GPS 기반 지역 필터 자동 선택 (사용자가 아직 바꾸지 않은 경우에만)
+    if(searchFilter==='all'){
+      const rf=detectRegionFilter(lat,lng);
+      if(rf!=='all') setSearchFilter(rf);
+    }
   }catch(e){}
   await fetchWeatherByLatLng(lat, lng);
 }
@@ -17626,41 +17637,40 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')     closeLightbox();
 });
 
-// ── WebView / 카카오톡 인앱브라우저 검색창 포커스 처리 ──────────
-function initWebViewSearch(){
+// ── 검색창 이벤트 및 WebView 포커스 처리 ──────────────────────
+(function(){
   var inp = document.getElementById('main-search-input');
   if(!inp) return;
 
-  // input/compositionend 이벤트를 addEventListener로 등록 (WebView에서 oninput 인라인 우회)
+  // input 이벤트 리스너 (oninput 인라인 대체)
   ['input', 'keyup', 'compositionend'].forEach(function(evt){
-    inp.addEventListener(evt, function(){
-      onSearchInput(inp.value);
-    });
+    inp.addEventListener(evt, function(){ onSearchInput(inp.value); });
   });
 
   if(!isWebView) return;
 
-  // stopPropagation만 사용 — preventDefault를 쓰면 한국어 IME 파이프라인이 끊김
-  inp.addEventListener('touchstart', function(e){
-    e.stopPropagation();
-    inp.removeAttribute('readonly');
-    inp.focus();
-  }, { passive: true, capture: true });
+  // MutationObserver 1: 검색 패널이 display:block이 될 때 자동 포커스
+  var panel = document.getElementById('rp-search');
+  if(panel){
+    new MutationObserver(function(){
+      if(panel.style.display !== 'none' && document.activeElement !== inp){
+        setTimeout(function(){ inp.focus(); }, 80);
+      }
+    }).observe(panel, { attributes: true, attributeFilter: ['style'] });
+  }
 
-  // 검색 탭 클릭 시 WebView에서 추가 포커스 시도
-  var _origRTab = window.rTab;
-  window.rTab = function(t){
-    if(typeof _origRTab === 'function') _origRTab(t);
-    if(t === 'search'){
-      setTimeout(function(){
-        var i = document.getElementById('main-search-input');
-        if(i){ i.removeAttribute('readonly'); i.focus(); }
-      }, 100);
-    }
-  };
-}
-// DOM 준비 완료 직후 실행 (스크립트가 </body> 직전이므로 DOM은 이미 파싱됨)
-initWebViewSearch();
+  // MutationObserver 2: 터치 직후 WebView가 activeElement를 가로채면 즉시 복구
+  inp.addEventListener('touchstart', function(){
+    var obs = new MutationObserver(function(){
+      if(document.activeElement !== inp){
+        obs.disconnect();
+        inp.focus();
+      }
+    });
+    obs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    setTimeout(function(){ obs.disconnect(); }, 600);
+  }, { passive: true });
+})();
 </script>
 <!-- 사진 라이트박스 -->
 <div id="photo-lightbox" onclick="lbBgClick(event)">
