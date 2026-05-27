@@ -2172,13 +2172,12 @@ html{
           <div style="position:relative;margin-bottom:10px;touch-action:manipulation;z-index:1;">
             <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;z-index:0;">🔍</span>
             <input id="main-search-input" type="text" placeholder="산 이름, 지역, 태그로 검색..."
-              oninput="onSearchInput(this.value)"
               onclick="this.focus()"
               ontouchend="this.focus()"
               onfocus="this.removeAttribute('readonly')"
               inputmode="text" enterkeyhint="search" tabindex="0"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-              style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;position:relative;z-index:1;">
+              style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:16px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;-webkit-user-select:text;user-select:text;touch-action:manipulation;position:relative;z-index:999;pointer-events:auto;">
             <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);z-index:2;touch-action:manipulation;">✕</button>
           </div>
           <div class="search-results" id="search-results"></div>
@@ -17629,28 +17628,26 @@ document.addEventListener('keydown',e=>{
 
 // ── WebView / 카카오톡 인앱브라우저 검색창 포커스 처리 ──────────
 function initWebViewSearch(){
-  if(!isWebView) return;
   var inp = document.getElementById('main-search-input');
   if(!inp) return;
 
-  // input의 touchstart 이벤트 완전 제어:
-  // - stopPropagation: document 레벨 touchstart가 포커스를 가로채는 것 차단
-  // - preventDefault: WebView 300ms 딜레이 및 기본 터치 동작 우회
-  // - 이후 수동으로 focus+click 호출하여 키보드를 확실히 올림
+  // input/compositionend 이벤트를 addEventListener로 등록 (WebView에서 oninput 인라인 우회)
+  ['input', 'keyup', 'compositionend'].forEach(function(evt){
+    inp.addEventListener(evt, function(){
+      onSearchInput(inp.value);
+    });
+  });
+
+  if(!isWebView) return;
+
+  // stopPropagation만 사용 — preventDefault를 쓰면 한국어 IME 파이프라인이 끊김
   inp.addEventListener('touchstart', function(e){
     e.stopPropagation();
-    e.preventDefault();
     inp.removeAttribute('readonly');
     inp.focus();
-    inp.click();
-    setTimeout(function(){
-      inp.removeAttribute('readonly');
-      inp.focus();
-    }, 300);
-  }, { passive: false, capture: true });
+  }, { passive: true, capture: true });
 
   // 검색 탭 클릭 시 WebView에서 추가 포커스 시도
-  // rTab('search') 호출 후 패널이 표시되고 나서 focus
   var _origRTab = window.rTab;
   window.rTab = function(t){
     if(typeof _origRTab === 'function') _origRTab(t);
