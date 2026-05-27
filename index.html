@@ -2162,6 +2162,8 @@ html{
               style="width:100%;padding:11px 36px 11px 36px;border-radius:14px;border:1.5px solid var(--borderr);font-size:14px;font-family:inherit;outline:none;color:var(--text1);background:#fff;transition:border-color .18s;">
             <button id="search-clear-btn" onclick="clearSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--g100);border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;color:var(--text3);">✕</button>
           </div>
+          <div class="search-results" id="search-results"></div>
+          <div id="search-filters-area">
           <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;">⏱️ 소요시간</div>
           <div class="search-filter-row" style="margin-bottom:14px;">
             <div class="sf-chip active" id="sf-all" onclick="setSearchFilter('all')">전체</div>
@@ -2201,7 +2203,7 @@ html{
             <div class="sf-chip" id="sf-cheonan" onclick="setSearchFilter('cheonan')">🏙️ 천안·아산</div>
             <div class="sf-chip" id="sf-top100" onclick="setSearchFilter('top100')">🏅 100대명산</div>
           </div>
-          <div class="search-results" id="search-results"></div>
+          </div>
         </div>
       </div>
 
@@ -13826,6 +13828,8 @@ function onSearchInput(val){
   searchQuery = val.trim();
   searchLimit = 20;
   document.getElementById('search-clear-btn').style.display = val ? '' : 'none';
+  const fa = document.getElementById('search-filters-area');
+  if(fa) fa.style.display = searchQuery ? 'none' : '';
   renderSearchResults();
 }
 
@@ -13835,6 +13839,8 @@ function clearSearch(){
   const inp = document.getElementById('main-search-input');
   if(inp) inp.value = '';
   document.getElementById('search-clear-btn').style.display = 'none';
+  const fa = document.getElementById('search-filters-area');
+  if(fa) fa.style.display = '';
   renderSearchResults();
 }
 
