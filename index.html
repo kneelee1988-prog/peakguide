@@ -17623,13 +17623,13 @@ document.addEventListener('keydown',e=>{
     _rafId = requestAnimationFrame(stealFocus);
   }
 
-  // 검색창 직접 터치/클릭 → 잠금 ON + 이벤트 상위 전파 차단
+  // 검색창 직접 터치/클릭 → 잠금 ON
+  // stopPropagation 제거: 캡처 단계에서 전파 차단 시 브라우저의 click 합성이 막혀 키보드가 올라오지 않음
   document.addEventListener('mousedown', function(e){
     const i = inp();
     if(!i) return;
     if(e.target === i){
       _lock = true;
-      e.stopPropagation();
     } else if(!inSearchPanel(e.target)){
       _lock = false;
       if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
@@ -17639,9 +17639,8 @@ document.addEventListener('keydown',e=>{
   document.addEventListener('touchstart', function(e){
     const i = inp();
     if(!i) return;
-    if(e.target === i || e.target.closest('#main-search-input')){
+    if(e.target === i){
       _lock = true;
-      e.stopPropagation();
     } else if(!inSearchPanel(e.target)){
       _lock = false;
       if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
