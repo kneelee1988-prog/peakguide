@@ -16092,52 +16092,75 @@ function _buildClusterMarkers(){
     });
     const mk=L.marker([rc.lat,rc.lng],{icon:ico}).addTo(recMap);
     mkrs[rc.key]=mk;
-    // Android WebView: _el의 touchend stopPropagation이 합성 click 생성을 막으므로
-    // cluster-btn에 직접 touchend 리스너를 붙여 신뢰성 있게 처리
-    const clusterEl=mk._el&&mk._el.querySelector('.cluster-btn');
-    if(clusterEl){
-      clusterEl.addEventListener('touchend',function(e){
-        e.stopPropagation();
-        e.preventDefault();
-        showRegionCards(rc.key);
-      },{passive:false});
-    }
+    // 마커가 DOM에 추가된 후 리스너 부착 (타이밍 문제 해결)
+    setTimeout(function(){
+      const clusterEl=mk._el&&mk._el.querySelector('.cluster-btn');
+      if(clusterEl){
+        clusterEl.addEventListener('touchend',function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          showRegionCards(rc.key);
+        },{passive:false});
+        clusterEl.addEventListener('click',function(e){
+          e.stopPropagation();
+          showRegionCards(rc.key);
+        });
+      }
+    },100);
   });
 }
 
 function showRegionCards(regionKey){
   const rc=REGION_CLUSTERS.find(r=>r.key===regionKey);
   if(!rc) return;
+
+  // 지도 줌인 (해당 지역으로 부드럽게 이동)
+  if(recMap){
+    const zoomLevel=regionKey==='jeju'?10:regionKey==='seoul'?11:9;
+    recMap.flyTo([rc.lat,rc.lng],zoomLevel,{duration:0.8,easeLinearity:0.5});
+  }
+
   const cond=getConditions?getConditions():null;
   const diffColors={'입문':'#43c47a','초급':'#4a9ed4','초~중급':'#8b6fd4','중급':'#f0a030','고급':'#e04040'};
+  const diffBg={'입문':'#e8faf2','초급':'#e8f3fc','초~중급':'#f0ebfc','중급':'#fef3e2','고급':'#fde8e8'};
   const scored=MTS.filter(rc.filter).map(function(m){
     const s=cond?calcMtScore(m,cond):75;
     const dk=(window.__userLat&&window.__userLng)?Math.round(calcDist(m.lat,m.lng,window.__userLat,window.__userLng)):null;
     return Object.assign({},m,{score:s,_dk:dk});
   }).sort((a,b)=>b.score-a.score);
 
+  // 헤더: 지역명 + 산 개수 + 색상 강조
   document.getElementById('region-panel-title').innerHTML=
-    `<span style="font-size:18px;margin-right:4px;">${rc.emoji}</span>${rc.name}<span style="font-size:13px;color:var(--text3);font-weight:600;margin-left:5px;">· ${scored.length}개 산</span>`;
+    `<span style="font-size:20px;margin-right:6px;">${rc.emoji}</span>
+     <span style="color:var(--text1);">${rc.name}</span>
+     <span style="font-size:12px;color:#fff;font-weight:700;margin-left:6px;background:${rc.color};padding:2px 9px;border-radius:20px;">${scored.length}개 산</span>`;
 
-  document.getElementById('region-panel-list').innerHTML=scored.map(function(m){
+  document.getElementById('region-panel-list').innerHTML=scored.map(function(m,idx){
     const h=Math.floor(m.timeMin/60),mn=m.timeMin%60;
     const timeStr=h>0?(h+'시간'+(mn>0?mn+'분':'')):(mn+'분');
-    return `<div class="reg-mt-card" onclick="openDetail('${m.id}',${m.score})">
-      <div class="reg-mt-icon" style="background:${m.color}22;border:1.5px solid ${m.color}44;">${m.alt>=1500?'🏔️':m.alt>=800?'⛰️':'🌿'}</div>
+    const scoreColor=m.score>=85?'#22a85a':m.score>=70?'#f0a030':'#e04848';
+    const scoreBg=m.score>=85?'#e8faf2':m.score>=70?'#fef3e2':'#fde8e8';
+    const rankBadge=idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':'';
+    return `<div class="reg-mt-card" onclick="closeRegionPanel();setTimeout(()=>openDetail('${m.id}',${m.score}),180);"
+      style="animation:su .3s ease ${idx*0.04}s both;">
+      <div class="reg-mt-icon" style="background:${m.color}22;border:1.5px solid ${m.color}44;position:relative;">
+        ${m.alt>=1500?'🏔️':m.alt>=800?'⛰️':'🌿'}
+        ${rankBadge?`<span style="position:absolute;top:-4px;right:-4px;font-size:11px;">${rankBadge}</span>`:''}
+      </div>
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
-          <div style="font-size:14px;font-weight:800;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nm}</div>
-          ${m.top100?'<span style="font-size:9px;background:rgba(240,160,48,.15);color:#c07020;border:1px solid rgba(240,160,48,.3);padding:1px 5px;border-radius:4px;flex-shrink:0;">100대</span>':''}
+          <div style="font-size:14px;font-weight:900;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nm}</div>
+          ${m.top100?'<span style="font-size:9px;background:rgba(240,160,48,.18);color:#c07020;border:1px solid rgba(240,160,48,.35);padding:1px 6px;border-radius:6px;flex-shrink:0;font-weight:800;">100대</span>':''}
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">▲${m.alt}m · ${m.distKm}km · ${timeStr}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;">▲${m.alt}m · ${m.distKm}km · ${timeStr}</div>
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:${(diffColors[m.diff]||'#888')}22;color:${diffColors[m.diff]||'#888'};">${m.diff}</span>
+          <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;background:${diffBg[m.diff]||'#f0f0f0'};color:${diffColors[m.diff]||'#888'};border:1px solid ${diffColors[m.diff]||'#888'}22;">${m.diff}</span>
           ${m._dk!=null?`<span style="font-size:10px;color:var(--text4);font-weight:600;">📍 ${m._dk}km</span>`:''}
         </div>
       </div>
-      <div style="flex-shrink:0;text-align:center;padding-left:4px;">
-        <div style="font-size:16px;font-weight:900;color:var(--g600);">${m.score}%</div>
-        <div style="font-size:9px;color:var(--text4);font-weight:600;">매칭</div>
+      <div style="flex-shrink:0;text-align:center;padding-left:6px;">
+        <div style="font-size:17px;font-weight:900;color:${scoreColor};background:${scoreBg};border-radius:10px;padding:4px 8px;line-height:1.2;">${m.score}<span style="font-size:10px;font-weight:700;">%</span></div>
+        <div style="font-size:9px;color:var(--text4);font-weight:600;margin-top:2px;">매칭도</div>
       </div>
     </div>`;
   }).join('');
@@ -17818,9 +17841,10 @@ document.addEventListener('keydown',e=>{
 <!-- 지역 클러스터 슬라이드업 패널 -->
 <div id="region-panel-overlay" onclick="closeRegionPanel()"></div>
 <div id="region-card-panel">
+  <div style="width:36px;height:4px;background:var(--borderr);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
   <div id="region-panel-header">
     <div id="region-panel-title" style="font-size:16px;font-weight:900;color:var(--text1);display:flex;align-items:center;gap:4px;"></div>
-    <button onclick="closeRegionPanel()" style="background:var(--g100);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;">✕</button>
+    <button onclick="closeRegionPanel()" style="background:var(--g100);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;touch-action:manipulation;flex-shrink:0;">✕</button>
   </div>
   <div id="region-panel-list"></div>
 </div>
