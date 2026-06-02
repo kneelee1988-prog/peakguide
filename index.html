@@ -16092,6 +16092,16 @@ function _buildClusterMarkers(){
     });
     const mk=L.marker([rc.lat,rc.lng],{icon:ico}).addTo(recMap);
     mkrs[rc.key]=mk;
+    // Android WebView: _el의 touchend stopPropagation이 합성 click 생성을 막으므로
+    // cluster-btn에 직접 touchend 리스너를 붙여 신뢰성 있게 처리
+    const clusterEl=mk._el&&mk._el.querySelector('.cluster-btn');
+    if(clusterEl){
+      clusterEl.addEventListener('touchend',function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        showRegionCards(rc.key);
+      },{passive:false});
+    }
   });
 }
 
