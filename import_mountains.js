@@ -3,7 +3,22 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const API_KEY = '1fceb2373be201e39250482fad520d8ca603ac8e82276b16cb10dfe16adb6e06';
+// .env 파일의 KEY=VALUE 를 process.env 로 읽어온다 (외부 패키지 없이)
+function loadEnv(file) {
+  if (!fs.existsSync(file)) return;
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || process.env[m[1]] !== undefined) continue;
+    process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2');
+  }
+}
+loadEnv(path.join(__dirname, '.env'));
+
+const API_KEY = process.env.DATA_GO_KR_KEY;
+if (!API_KEY) {
+  console.error('DATA_GO_KR_KEY 가 없습니다. .env 파일에 DATA_GO_KR_KEY=발급받은키 를 넣어 주세요. (.env.example 참고)');
+  process.exit(1);
+}
 const BASE_URL = 'http://api.forest.go.kr/openapi/service/trailInfoService/getforeststoryservice';
 
 // City/region → [lat, lng] lookup table

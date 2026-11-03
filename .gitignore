@@ -1,0 +1,19 @@
+# 비밀 정보
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Vercel
+.vercel
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Claude Code 개인 설정
+.claude/settings.local.json
