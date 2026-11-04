@@ -18,6 +18,7 @@
   - 사용자·즐겨찾기·설정은 `localStorage`의 `pg_*` 키에 저장(서버 없음).
 - `import_mountains.js` — 산림청 OpenAPI에서 산 데이터를 받아오는 Node 스크립트(일회성 데이터 생성용).
 - `api_mountains.json`, `test_response.xml` — 위 스크립트의 출력/샘플.
+- `api/ai-comment.js` — AI 코스 코멘트용 Vercel 서버리스 함수. 의존성은 `package.json`(`@anthropic-ai/sdk`). 빌드 단계는 여전히 없음.
 
 ## 모바일 우선
 - 기준 화면은 모바일. 데스크톱은 깨지지만 않으면 됨.
@@ -31,4 +32,4 @@
 - API 키·비밀값을 코드에 하드코딩하지 말 것. 공개 저장소임.
   - 키는 `.env`(git 제외)에 두고 `process.env`로 읽음. 필요한 키 목록은 `.env.example`.
   - 예: `import_mountains.js`는 `DATA_GO_KR_KEY` 사용. 옛 키는 git 기록에 남아 있으므로 폐기 대상.
-- 브라우저에서 `api.anthropic.com`을 직접 호출하는 코드가 있음(키 없음, 동작 안 함). 키를 넣어 "고치지" 말고 서버리스 함수(Vercel `api/`)를 거치게 할 것.
+- Claude 호출은 서버리스 함수 `api/ai-comment.js`(Vercel)만 거침. 브라우저는 `/api/ai-comment`에 코스·날씨 필드만 POST하고, 프롬프트는 서버에서 조립(임의 프롬프트 받지 않음). 키는 Vercel 환경변수 `ANTHROPIC_API_KEY`. 브라우저에서 `api.anthropic.com` 직접 호출 금지.
