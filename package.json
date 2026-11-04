@@ -1,0 +1,8 @@
+{
+  "name": "peakguide",
+  "private": true,
+  "description": "PeakGuide — 빌드 없는 정적 사이트. 이 파일은 Vercel 서버리스 함수(api/)의 의존성용.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0"
+  }
+}
