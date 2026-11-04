@@ -58,12 +58,10 @@ module.exports = async function handler(req, res) {
   if (!str(body.name, 80)) return res.status(400).json({ error: 'name_required' });
 
   try {
-    const response = await client.beta.messages.create({
-      model: 'claude-opus-5-5',
+    const response = await client.messages.create({
+      model: 'claude-haiku-5-5',
       max_tokens: 2000, // 생각 토큰 포함 상한. 코멘트 자체는 짧음
       output_config: { effort: 'low' },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default', // 안전 분류기가 거절하면 서버에서 다른 모델로 재시도
       system: SYSTEM,
       messages: [{ role: 'user', content: buildPrompt(body) }],
     });
